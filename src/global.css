@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+@import "tailwindcss";
+
+:root {
+  --color-primary: #4F8AFA;
+  --color-secondary: #A2E4B8;
+  --color-background: #F5F7FA;
+  --color-text: #2E2E2E;
+  --font-primary: "Poppins", sans-serif;
+  --font-secondary: "Open Sans", sans-serif;
+  --radius-base: 0.5rem;
+  --transition-base: 0.3s ease-in-out;
+}
+
+/* 🌙 MODO OSCURO */
+:root.dark {
+  --color-primary: #90C2FF;
+  --color-secondary: #65D6AD;
+  --color-background: #1E1E2F;
+  --color-text: #F1F1F1;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply text-base text-[color:var(--color-text)] bg-[color:var(--color-background)] leading-relaxed;
+    font-family: var(--font-primary);
+  }
+
+  h1 {
+    @apply text-3xl font-bold text-[color:var(--color-primary)];
+    font-family: var(--font-primary);
+  }
+
+  h2 {
+    @apply text-2xl font-semibold text-[color:var(--color-text)];
+    font-family: var(--font-primary);
+  }
+
+  h3 {
+    @apply text-xl font-semibold text-[color:var(--color-primary)];
+    font-family: var(--font-primary);
+  }
+
+  p {
+    @apply text-base text-[color:var(--color-text)];
+    font-family: var(--font-secondary);
+  }
+
+  a {
+    @apply text-[color:var(--color-primary)] underline transition-colors;
+    transition: var(--transition-base);
+  }
+
+  a:hover {
+    color: var(--color-secondary);
+  }
+
+  ul {
+    @apply list-disc pl-6;
+  }
+
+  img {
+    @apply max-w-full h-auto rounded;
+  }
+
+  button {
+    @apply cursor-pointer transition duration-300;
+  }
+}
+
+@layer components {
+  .container-center {
+    @apply max-w-screen-xl mx-auto px-4;
+  }
+
+  .btn-primary {
+    @apply bg-[color:var(--color-primary)] text-white py-2 px-4 rounded-md font-medium hover:bg-[color:var(--color-secondary)];
+  }
+
+  .btn-secondary {
+    @apply border border-[color:var(--color-primary)] text-[color:var(--color-primary)] py-2 px-4 rounded-md hover:bg-[color:var(--color-primary)] hover:text-white;
+  }
+
+  .card {
+    @apply bg-white dark:bg-[color:var(--color-background)] p-4 rounded shadow-md hover:shadow-lg transition-shadow duration-300;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold mb-4 text-[color:var(--color-primary)];
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .transition-soft {
+    transition: all var(--transition-base);
+  }
+
+  .rounded-base {
+    border-radius: var(--radius-base);
+  }
+
+  .bg-pattern {
+    background-image: url('/images/pattern.svg');
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+}
+
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, 20px); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-15px, 15px); }
+}
+@keyframes float3 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, -20px); }
+}
+
+.animate-float1 {
+  animation: float1 8s ease-in-out infinite;
+}
+.animate-float2 {
+  animation: float2 10s ease-in-out infinite;
+}
+.animate-float3 {
+  animation: float3 12s ease-in-out infinite;
+}
+
+.orb {
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  transition: transform 0.1s ease-out;
+}
