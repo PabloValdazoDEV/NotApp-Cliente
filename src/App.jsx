@@ -1,25 +1,48 @@
-import { userAtom } from "./store/userAtom";
-import { useSupabaseSession } from "./hooks/useSupabaseSession";
+import { fetchUser, user } from "./store/userAtom";
 
 import { Navigate, Routes, Route } from "react-router";
-import { useAtom } from "jotai";
+import { useSetAtom } from "jotai";
+import { useEffect } from "react";
 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Home from "./pages/Home";
 import Layout from "./components/Layout";
 
 import "./global.css";
+import { useUserAuth } from "./hooks/useUserAuth";
+
+const PublicRoute = ({ element }) => {
+  const {isAuth, loading} = useUserAuth();
+  if (loading) return <div>Cargando...</div>;
+  if (isAuth)
+    return <Navigate to="/home" />;
+  return element;
+};
+const PrivateRoute = ({ element }) => {
+  const {isAuth, loading} = useUserAuth();
+  if (loading) return <div>Cargando...</div>;
+  if (!isAuth)
+    return <Navigate to="/login" />;
+  return element;
+};
 
 function App() {
-  useSupabaseSession();
-  const [user] = useAtom(userAtom);
+  const fetchUserContext = useSetAtom(fetchUser);
+
+  useEffect(() => {
+    fetchUserContext();
+  }, []);
 
   return (
     <>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route path="/login" element={<PublicRoute  element={<Login />}/>} />
+        <Route path="/register" element={<PublicRoute  element={<Register />}/>} />
+        <Route path="/" element={<PrivateRoute element={<Layout />}/>}>
           <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
+          {/* <Route path="login" element={<PublicRoute  element={<Login />}/>} />
+          <Route path="register" element={<Register />} /> */}
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
