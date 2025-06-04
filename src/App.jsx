@@ -11,6 +11,7 @@ import Layout from "./components/Layout";
 
 import "./global.css";
 import { useUserAuth } from "./hooks/useUserAuth";
+import ResetPassword from "./pages/ResetPassword";
 
 const PublicRoute = ({ element }) => {
   const {isAuth, loading} = useUserAuth();
@@ -34,11 +35,14 @@ function App() {
     fetchUserContext();
   }, []);
 
+  const register = import.meta.env.VITE_REGISTER
+
   return (
     <>
       <Routes>
         <Route path="/login" element={<PublicRoute  element={<Login />}/>} />
-        <Route path="/register" element={<PublicRoute  element={<Register />}/>} />
+        <Route path={register} element={<PublicRoute  element={<Register />}/>} />
+        <Route path="/reset-password" element={<PublicRoute  element={<ResetPassword />}/>} />
         <Route path="/" element={<PrivateRoute element={<Layout />}/>}>
           <Route index element={<Home />} />
           {/* <Route path="login" element={<PublicRoute  element={<Login />}/>} />

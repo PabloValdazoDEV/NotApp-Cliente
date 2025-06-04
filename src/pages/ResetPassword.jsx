@@ -1,18 +1,17 @@
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { tryRegister } from "../api/auth";
-import { useNavigate } from "react-router";
+import { tryResetPassword, tryCheckToken } from "../api/auth";
+import { useNavigate, useSearchParams } from "react-router";
 import { useSetAtom } from "jotai";
 import { fetchUser } from "../store/userAtom";
 import InputGeneral from "../components/Input/InputGeneral";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
 import { useEffect, useState } from "react";
 
-export default function Register() {
+export default function ResetPassword() {
   const [messageInfo, setMessageInfo] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [validation, setValidation] = useState({
-    emailConfirm: false,
     passwordConfirm: false,
     pass7: false,
     passAZ: false,
@@ -26,20 +25,20 @@ export default function Register() {
     reset,
     formState: { errors },
     watch,
-    setValue
+    setValue,
   } = useForm();
   const navigate = useNavigate();
   const refetchUser = useSetAtom(fetchUser);
 
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+
   const mutation = useMutation({
     mutationFn: async (data) => {
-      const reponse = await tryRegister(data);
-      if (
-        reponse.message === "Usuario registrado correctamente" &&
-        reponse.token
-      ) {
+      const reponse = await tryResetPassword({ data, token });
+      if (reponse.message === "Contraseña actualizada correctamente") {
         reset();
-        navigate("/");
+        navigate("/login");
         refetchUser();
       }
 
@@ -49,17 +48,25 @@ export default function Register() {
     },
   });
 
+  const mutationCheckToken = useMutation({
+    mutationFn: async (data) => {
+      const reponse = await tryCheckToken( data );
+      if (reponse.message !== "Token valido") {
+        navigate("/login");
+        refetchUser();
+      }
+    },
+  });
+
   const password = watch("password");
   const passwordConfirm = watch("passwordConfirm");
-  const email = watch("email");
-  const emailConfirm = watch("emailConfirm");
 
   useEffect(() => {
-
-    if(password){
-      setValue("password", password.trim() )
-      setValue("passwordConfirm", passwordConfirm.trim() )
+    if (password) {
+      setValue("password", password.trim());
+      setValue("passwordConfirm", passwordConfirm.trim());
     }
+
     const pass7 = /^.{7,}$/;
     const passAZ = /(?=.*[A-Z])/;
     const passN = /(?=.*\d)/;
@@ -76,23 +83,15 @@ export default function Register() {
   }, [password, passwordConfirm]);
 
   useEffect(() => {
-    setValidation((prev) => ({
-      ...prev,
-      emailConfirm: email === emailConfirm,
-    }));
-  }, [email, emailConfirm]);
+    if (!token) {
+      console.log("no hay")
+      navigate("/login")
+    }
+    mutationCheckToken.mutate(token)
+
+  }, []);
 
   const onSubmit = (data) => {
-    if (!validation.emailConfirm && !validation.passwordConfirm) {
-      setMessageInfo("El email no es el mismo, la contraseña no es la misma");
-      return;
-    }
-
-    if (!validation.emailConfirm) {
-      setMessageInfo("El email no es el mismo");
-      return;
-    }
-
     if (!validation.passwordConfirm) {
       setMessageInfo("La contraseña no es la misma");
       return;
@@ -104,7 +103,9 @@ export default function Register() {
       <div className="max-w-80 mx-auto items-center min-h-screen flex flex-col">
         <div className="flex flex-grow container w-auto gap-8 items-center">
           <div className="w-full">
-            <h2 className="text-2xl font-bold mb-6 text-center">Registro</h2>
+            <h2 className="text-2xl font-bold mb-6 text-center">
+              Restablecer contraseña
+            </h2>
             <form
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-6 flex flex-col justify-center"
@@ -114,49 +115,6 @@ export default function Register() {
                   <p className=" text-white font-medium ">{messageInfo}</p>
                 </div>
               )}
-              <div className=" relative">
-                <InputGeneral
-                  placeholder="Nombre"
-                  type="text"
-                  id="name"
-                  name="name"
-                  {...register("name", { required: true })}
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-xs absolute top-[-18px] left-0">
-                   Campo obligatorio
-                  </p>
-                )}
-              </div>
-              <div className=" relative">
-                <InputGeneral
-                  placeholder="Email"
-                  type="email"
-                  id="email"
-                  name="email"
-                  {...register("email", { required: true })}
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-xs absolute top-[-18px] left-0">
-                   Campo obligatorio
-                  </p>
-                )}
-              </div>
-              <div className=" relative">
-                <InputGeneral
-                  placeholder="Confirmación de Email"
-                  type="email"
-                  id="emailConfirm"
-                  name="emailConfirm"
-                  autoComplete="new-email"
-                  {...register("emailConfirm", { required: true })}
-                />
-                {errors.emailConfirm && (
-                  <p className="text-red-500 text-xs absolute top-[-18px] left-0">
-                   Campo obligatorio
-                  </p>
-                )}
-              </div>
               <div className=" relative">
                 <InputGeneral
                   placeholder="Contraseña"
@@ -173,16 +131,16 @@ export default function Register() {
                 />
                 {errors.password?.type === "required" && (
                   <p className="text-red-500 text-xs absolute top-[-18px] left-0">
-                   Campo obligatorio
+                    Campo obligatorio
                   </p>
                 )}
                 <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center hover:scale-105"
-            >
-              {showPassword ? "🙊" : "🙈"}
-            </button>
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center hover:scale-105"
+                >
+                  {showPassword ? "🙊" : "🙈"}
+                </button>
               </div>
               <div>
                 <h4>La contraseña debe contener lo siguiente:</h4>
@@ -233,13 +191,21 @@ export default function Register() {
                 />
                 {errors.passwordConfirm?.type === "required" && (
                   <p className="text-red-500 text-xs absolute top-[-18px] left-0">
-                   Campo obligatorio
+                    Campo obligatorio
                   </p>
                 )}
               </div>
+              <a
+                className="text cursor-pointer hover:text-[color:var(--color-primary)] hover:scale-102 no-underline"
+                onClick={() => {
+                  navigate("/login");
+                }}
+              >
+                Volver al login
+              </a>
 
               <ButtonGeneral
-                children={"Registrar"}
+                children={"Cambiar contraseña"}
                 type="submit"
                 className="text-white"
               />

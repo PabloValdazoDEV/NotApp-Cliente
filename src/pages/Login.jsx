@@ -1,21 +1,25 @@
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { tryLogin } from "../api/auth";
+import { tryForgotPassword, tryLogin } from "../api/auth";
 import { useNavigate } from "react-router";
 import { useSetAtom } from "jotai";
 import { fetchUser } from "../store/userAtom";
 import InputGeneral from "../components/Input/InputGeneral";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Login() {
   const [messageInfo, setMessageInfo] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
 
   const {
     handleSubmit,
     register,
     reset,
     formState: { errors },
+    watch,
+    setValue,
   } = useForm();
   const navigate = useNavigate();
   const refetchUser = useSetAtom(fetchUser);
@@ -34,69 +38,177 @@ export default function Login() {
       }
     },
   });
+  const mutationForgotPassword = useMutation({
+    mutationFn: async (data) => {
+      const reponse = await tryForgotPassword(data);
+      if (reponse.message === "Correo de recuperación enviado") {
+        reset();
+        setMessageInfo(reponse.message);
+      }
 
-  const onSubmit = (data) => {
+      if (reponse.message !== "Server error") {
+        setMessageInfo(reponse.message);
+      }
+    },
+  });
+
+  const onSubmitLogin = (data) => {
     mutation.mutate(data);
   };
+  const onSubmitForgotPassword = (data) => {
+    mutationForgotPassword.mutate(data);
+  };
+
+  const password = watch("password");
+
+  useEffect(() => {
+    if (password) {
+      setValue("password", password.trim());
+    }
+  }, [password]);
+
   return (
     <>
-      <div className="max-w-4xl mx-auto flex flex-col items-center">
-        <h2 className="text-2xl font-bold mb-6">
-          Inicio de sesión
-        </h2>
+      <div className="max-w-80 mx-auto items-center min-h-screen flex flex-col">
+        <div className="flex flex-grow w-full gap-8 items-center">
+          {!forgotPassword ? (
+            <div className="w-full">
+              <h2 className="text-2xl font-bold mb-6 text-center">
+                Inicio de sesión
+              </h2>
+              <form
+                onSubmit={handleSubmit(onSubmitLogin)}
+                className="space-y-6 flex flex-col justify-center"
+              >
+                {messageInfo && (
+                  <div
+                    className={`text-center ${
+                      messageInfo === "Credenciales correctas"
+                        ? "bg-green-400 "
+                        : "bg-red-400"
+                    } px-4 py-2 rounded-md`}
+                  >
+                    <p className=" text-white font-medium ">{messageInfo}</p>
+                  </div>
+                )}
 
-        <div className="w-1/2 gap-8 items-center jus">
-          <div>
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="space-y-4 flex flex-col justify-center"
-            >
-              {messageInfo && (
-                <div className={`text-center ${messageInfo === "Credenciales correctas" ? "bg-green-400 ": "bg-red-400" } px-4 py-2 rounded-md`}>
-                  <p className=" text-white font-medium ">{messageInfo}</p>
+                <div className=" relative">
+                  <InputGeneral
+                    placeholder="Email"
+                    type="email"
+                    id="email"
+                    name="email"
+                    {...register("email", { required: true })}
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs absolute top-[-18px] left-0">
+                      Campo obligatorio
+                    </p>
+                  )}
                 </div>
-              )}
 
-              <InputGeneral
-                placeholder="Email"
-                type="email"
-                id="email"
-                name="email"
-                {...register("email", { required: true })}
-              />
-              {errors.email && (
-                <p className="text-red-500 text-xs">Campo requerido</p>
-              )}
+                <div className=" relative">
+                  <InputGeneral
+                    placeholder="Contraseña"
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    autoComplete="new-password"
+                    {...register("password", {
+                      required: true,
+                      pattern: {
+                        value: /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{7,}$/gm,
+                        message:
+                          "La contraseña no cumple los parametros minimos",
+                      },
+                    })}
+                  />
+                  {errors.password?.type === "required" && (
+                    <p className="text-red-500 text-xs absolute top-[-18px] left-0">
+                      Campo obligatorio
+                    </p>
+                  )}
+                  {errors.password?.type === "pattern" && (
+                    <p className="text-red-500 text-xs absolute top-[-18px] left-0">
+                      {errors.password.message}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center hover:scale-105"
+                  >
+                    {showPassword ? "🙊" : "🙈"}
+                  </button>
+                </div>
+                <a
+                  className="text cursor-pointer hover:text-[color:var(--color-primary)] hover:scale-102 no-underline"
+                  onClick={() => {
+                    setForgotPassword(true);
+                  }}
+                >
+                  ¿Has olvidado la contraseña?
+                </a>
 
-              <InputGeneral
-                placeholder="Contraseña"
-                type="password"
-                id="password"
-                name="password"
-                {...register("password", {
-                  required: true,
-                  pattern: {
-                    value: /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{7,}$/gm,
-                    message: "La contraseña no cumple los parametros",
-                  },
-                })}
-              />
-              {errors.password?.type === "required" && (
-                <p className="text-red-500 text-xs">Campo requerido</p>
-              )}
-              {errors.password?.type === "pattern" && (
-                <p className="text-red-500 text-xs">
-                  {errors.password.message}
-                </p>
-              )}
+                <ButtonGeneral
+                  children={"Ingresar"}
+                  type="submit"
+                  className="text-white"
+                />
+              </form>
+            </div>
+          ) : (
+            <div className="w-full">
+              <h2 className="text-2xl font-bold mb-6 text-center">
+                Escribe tu correo
+              </h2>
+              <form
+                onSubmit={handleSubmit(onSubmitForgotPassword)}
+                className="space-y-6 flex flex-col justify-center"
+              >
+                {messageInfo && (
+                  <div
+                    className={`text-center ${
+                      messageInfo === "Correo de recuperación enviado"
+                        ? "bg-green-400 "
+                        : "bg-red-400"
+                    } px-4 py-2 rounded-md`}
+                  >
+                    <p className=" text-white font-medium ">{messageInfo}</p>
+                  </div>
+                )}
 
-              <ButtonGeneral
-                children={"Ingresar"}
-                type="submit"
-                // className="text-white"
-              />
-            </form>
-          </div>
+                <div className=" relative">
+                  <InputGeneral
+                    placeholder="Email"
+                    type="email"
+                    id="email"
+                    name="email"
+                    {...register("email", { required: true })}
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs absolute top-[-18px] left-0">
+                      Campo obligatorio
+                    </p>
+                  )}
+                </div>
+                <a
+                  className="text cursor-pointer hover:text-[color:var(--color-primary)] hover:scale-102 no-underline"
+                  onClick={() => {
+                    setForgotPassword(false);
+                  }}
+                >
+                 Volver al login
+                </a>
+
+                <ButtonGeneral
+                  children={"Recuperar cuenta"}
+                  type="submit"
+                  className="text-white"
+                />
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </>
