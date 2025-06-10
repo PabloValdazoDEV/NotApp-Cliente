@@ -5,8 +5,8 @@
 :root {
   --color-primary: #4F8AFA;
   --color-secondary: #A2E4B8;
-  --color-background: #F5F7FA;
-  --color-background-object: #e8e8e8;
+  --color-background: #ffffff;
+  --color-background-object: #F3F6F9;
   --color-text: #2E2E2E;
   --font-primary: "Poppins", sans-serif;
   --font-secondary: "Open Sans", sans-serif;
