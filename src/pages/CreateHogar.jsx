@@ -64,13 +64,18 @@ export default function () {
             +
           </label>
         </div>
+        {errors.name && (
+            <p className="text-red-500 text-xs">
+              El nombre es obligatorio
+            </p>
+          )}
         <InputGeneral
         placeholder="Nombre del hogar..."
           className="md:w-80"
           type="text"
           id="name"
           name="name"
-          {...register("name")}
+          {...register("name", {required: true})}
         />
         <ButtonGeneral
           type="submit"

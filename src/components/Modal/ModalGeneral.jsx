@@ -11,7 +11,7 @@ export default function ModalGeneral({
   return (
     <div className="fixed inset-0 bg-[color:var(--color-primary)]/10 backdrop-blur-sm z-60 flex items-center justify-center px-4">
       <div className="w-full max-w-xs bg-[color:var(--color-background-object)] rounded-lg shadow-lg p-6 flex flex-col gap-5 items-center relative">
-        <h2>{titulo}</h2>
+        <h2 className="text-center">{titulo}</h2>
         <p className="text-center">{text}</p>
         <div className="flex flex-row gap-5 ">
           <ButtonGeneral

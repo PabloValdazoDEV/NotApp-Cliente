@@ -11,6 +11,7 @@ import { IoSyncOutline } from "react-icons/io5";
 import { FaRegTrashAlt } from "react-icons/fa";
 import ModalGeneral from "../components/Modal/ModalGeneral";
 import CardItem from "../components/Cards/CardItem";
+import ModalItem from "../components/Modal/ModalItem";
 
 export default function () {
   const queryClient = useQueryClient();
@@ -18,6 +19,11 @@ export default function () {
   //   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
   const { hogar_id } = useParams();
   const [modalDeleteHogar, setModalDeleteHogar] = useState(false);
+  const [modalCreateItem, setModalCreateItem] = useState(false);
+  const [modalEditItem, setModalEditItem] = useState(false);
+  const [dataEdit, setDataEdit] = useState({});
+
+  //   console.log(dataEdit)
 
   const [active, setActive] = useState({
     hogar: false,
@@ -208,9 +214,19 @@ export default function () {
         )}
         {active.productos && (
           <>
-            <div>
+            <div className="grid md:grid-cols-2 md:gap-10">
               {dataHogar?.items.map((item, i) => {
-                return <CardItem key={i} data={item} />;
+                return (
+                  <CardItem
+                    key={i}
+                    data={item}
+                    active={active}
+                    editClick={() => {
+                      setModalEditItem(true);
+                      setDataEdit(item);
+                    }}
+                  />
+                );
               })}
             </div>
             <div
@@ -223,7 +239,7 @@ export default function () {
               <ButtonGeneral
                 className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
                 onClick={() => {
-                  // navigate("/hogar/crear-hogar");
+                  setModalCreateItem(true);
                 }}
                 children={
                   <>
@@ -281,6 +297,21 @@ export default function () {
               }
             />
           </div>
+        )}
+        {modalCreateItem && (
+          <ModalItem
+            onClickClosed={() => {
+              setModalCreateItem(false);
+            }}
+          />
+        )}
+        {modalEditItem && (
+          <ModalItem
+            onClickClosed={() => {
+              setModalEditItem(false);
+            }}
+            data={dataEdit}
+          />
         )}
         {modalDeleteHogar && (
           <ModalGeneral
