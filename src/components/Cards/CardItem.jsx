@@ -8,7 +8,7 @@ export default function CardItem({ data, active, editClick }) {
   return (
     <>
       <div className="grid grid-cols-10 grid-rows-4 h-35 gap-3 mb-5 border-b-1 pb-5 last:border-0 border-[var(--color-primary)]">
-        <div className="grid grid-cols-8 grid-rows-4 col-span-8 row-span-4">
+        <div className="grid grid-cols-8 grid-rows-4 col-span-8 row-span-4 gap-3">
           <img
             src={
               data.image

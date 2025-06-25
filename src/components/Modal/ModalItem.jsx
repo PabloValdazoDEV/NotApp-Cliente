@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { deleteItem, postItem, updateItem } from "../../api/item";
 import { useParams } from "react-router";
 import ModalGeneral from "./ModalGeneral";
+import toast from "react-hot-toast";
 
 export default function ModalItem({ onClickClosed, data }) {
   const [categories, setCategories] = useState({
@@ -18,6 +19,7 @@ export default function ModalItem({ onClickClosed, data }) {
 
   const { hogar_id } = useParams();
   const [modalDelete, setModalDelete] = useState(false);
+  const [loadingAnimation, setLoadingAnimation] = useState(false);
 
   const {
     handleSubmit,
@@ -28,7 +30,6 @@ export default function ModalItem({ onClickClosed, data }) {
     setValue,
   } = useForm();
 
-  console.log(data?.image);
 
   useEffect(() => {
     setValue("name", data?.name);
@@ -39,26 +40,39 @@ export default function ModalItem({ onClickClosed, data }) {
   const mutation = useMutation({
     mutationFn: postItem,
     onSuccess: () => {
+      toast.success("Producto creado correctamente!");
+      setLoadingAnimation(false)
       onClickClosed();
-    },
+    },onError:()=>{
+      toast.error("Error al crear el producto!")
+    }
   });
   const mutationUpdate = useMutation({
     mutationFn: updateItem,
     onSuccess: () => {
+      toast.success("Producto actualizado correctamente!");
+      setLoadingAnimation(false)
       onClickClosed();
-    },
+    },onError:()=>{
+      toast.error("Error al actualizar el producto!")
+    }
   });
 
   const mutationDelete = useMutation({
     mutationFn: deleteItem,
     onSuccess: () => {
+      toast('Producto borrado correctamente!', {
+        icon: '🗑️',
+      });
       onClickClosed();
-    },
+    },onError:()=>{
+      toast.error("Error al borrar el producto!")
+    }
   });
 
-  const onSubmitDteleteItem = () =>{
+  const onSubmitDteleteItem = () => {
     mutationDelete.mutate(data.id);
-  }
+  };
 
   const onSubmit = (dataFrom) => {
     if (data) {
@@ -68,6 +82,7 @@ export default function ModalItem({ onClickClosed, data }) {
         file: dataFrom?.file[0] ? dataFrom?.file[0] : null,
         categories: [categories.first, categories.second, categories.third],
       };
+      setLoadingAnimation(true)
       mutationUpdate.mutate(formData);
     } else {
       const formData = {
@@ -76,6 +91,7 @@ export default function ModalItem({ onClickClosed, data }) {
         file: dataFrom?.file[0],
         categories: [categories.first, categories.second, categories.third],
       };
+      setLoadingAnimation(true)
       mutation.mutate(formData);
     }
   };
@@ -182,6 +198,7 @@ export default function ModalItem({ onClickClosed, data }) {
                 )}
 
                 <ButtonGeneral
+                  loading={loadingAnimation}
                   type="submit"
                   children={data ? "Actualizar" : "Crear producto"}
                   className="text-white"
@@ -210,7 +227,7 @@ export default function ModalItem({ onClickClosed, data }) {
         </div>
       )}
       {modalDelete && (
-        <ModalGeneral
+       <> <ModalGeneral
           titulo={`Borrar el hogar ${data?.name}`}
           text="Se borran todos las listas y los demas miembre no podran acceder nunca mas, se perderan todos los datos."
           textBtnGreen="Cancelar"
@@ -222,7 +239,9 @@ export default function ModalItem({ onClickClosed, data }) {
             onSubmitDteleteItem();
           }}
         />
+      </>
       )}
+      
     </>
   );
 }

@@ -1,12 +1,14 @@
 import { useNavigate, Link } from "react-router";
 import { tryLogout } from "../api/auth";
-import { fetchUser } from "../store/userAtom";
+import { fetchUser, user } from "../store/userAtom";
 import { useSetAtom } from "jotai";
 import { useState } from "react";
+import { useAtomValue } from "jotai";
 
 export default function () {
   const navigate = useNavigate();
   const fetchUserContext = useSetAtom(fetchUser);
+  const userContext = useAtomValue(user);
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -17,9 +19,19 @@ export default function () {
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center ">
           <Link
             to="/profile"
-            className="text-2xl font-bold text-[color:var(--color-primary)]"
+            className="text-2xl font-bold text-[color:var(--color-primary)] "
           >
-            <img src="/Avatar.png" alt="Avatar" className="w-15 rounded-full" />
+            <img
+              src={`${
+                userContext.image
+                  ? `https://res.cloudinary.com/${
+                      import.meta.env.VITE_NAME_CLOUDINARY
+                    }/image/upload/f_auto,q_auto,w_500/${userContext.image}`
+                  : "/Avatar.png"
+              }`}
+              alt="Avatar"
+              className="w-15 rounded-full aspect-square object-cover"
+            />
           </Link>
 
           {/* Desktop menu */}
@@ -107,7 +119,7 @@ export default function () {
               </button>
               <button
                 onClick={() => {
-                    setIsOpen(false)
+                  setIsOpen(false);
                 }}
                 className="text-sm bg-red-600 text-white px-2 py-2 rounded-3xl w-auto absolute top-[-20px] right-[-20px]"
               >
