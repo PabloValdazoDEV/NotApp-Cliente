@@ -7,10 +7,13 @@ import { useMutation } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { user } from "../store/userAtom";
 import { useNavigate } from "react-router";
+import { useState } from "react";
+import toast from "react-hot-toast";
 
 export default function () {
   const userData = useAtomValue(user);
-  const navegate = useNavigate()
+  const navegate = useNavigate();
+  const [loadingAnimation, setLoadingAnimation] = useState(false);
 
   const {
     handleSubmit,
@@ -22,7 +25,11 @@ export default function () {
 
   const mutation = useMutation({
     mutationFn: postHome,
-    onSuccess:()=>{navegate("/")}
+    onSuccess: () => {
+      toast.success("Hogar creado correctamente!");
+        setLoadingAnimation(false);
+        navegate("/");
+    },
   });
 
   const onSubmit = (data) => {
@@ -31,6 +38,7 @@ export default function () {
       name: data.name,
       file: data.file[0],
     };
+    setLoadingAnimation(true);
 
     mutation.mutate(formData);
   };
@@ -65,21 +73,20 @@ export default function () {
           </label>
         </div>
         {errors.name && (
-            <p className="text-red-500 text-xs">
-              El nombre es obligatorio
-            </p>
-          )}
+          <p className="text-red-500 text-xs">El nombre es obligatorio</p>
+        )}
         <InputGeneral
-        placeholder="Nombre del hogar..."
+          placeholder="Nombre del hogar..."
           className="md:w-80"
           type="text"
           id="name"
           name="name"
-          {...register("name", {required: true})}
+          {...register("name", { required: true })}
         />
         <ButtonGeneral
+          loading={loadingAnimation}
           type="submit"
-          children="Crear hogar"
+          children={"Crear hogar"}
           className="text-white"
         />
       </form>

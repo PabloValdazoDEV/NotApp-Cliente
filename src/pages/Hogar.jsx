@@ -1,6 +1,6 @@
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import InputGeneral from "../components/Input/InputGeneral";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { useForm } from "react-hook-form";
@@ -12,6 +12,10 @@ import { FaRegTrashAlt } from "react-icons/fa";
 import ModalGeneral from "../components/Modal/ModalGeneral";
 import CardItem from "../components/Cards/CardItem";
 import ModalItem from "../components/Modal/ModalItem";
+import toast from "react-hot-toast";
+import { postInvite } from "../api/member";
+import { useAtomValue } from "jotai";
+import { user } from "../store/userAtom";
 
 export default function () {
   const queryClient = useQueryClient();
@@ -22,12 +26,14 @@ export default function () {
   const [modalCreateItem, setModalCreateItem] = useState(false);
   const [modalEditItem, setModalEditItem] = useState(false);
   const [dataEdit, setDataEdit] = useState({});
+  const [isOwner, setIsOwner] = useState(false);
+  const userContext = useAtomValue(user);
 
   //   console.log(dataEdit)
 
   const [active, setActive] = useState({
-    hogar: false,
-    productos: true,
+    hogar: true,
+    productos: false,
     listas: false,
   });
   const navigate = useNavigate();
@@ -49,15 +55,44 @@ export default function () {
     },
   });
 
+  useEffect(() => {
+    if (dataHogar?.members) {
+      const isOwner = dataHogar.members.filter(
+        (member) => member.user_id === userContext.id
+      );
+      setIsOwner(isOwner[0].role === "OWNER" || isOwner[0].role === "ADMIN" );
+    }
+  }, [dataHogar, userContext]);
+
+  // console.log(dataHogar?.members)
+  // console.log(userContext)
+
   const mutationUpdateHogar = useMutation({
     mutationFn: updateHome,
-    onSuccess: queryClient.invalidateQueries(),
+    onSuccess: () => {
+      toast.success("Hogar actualizado correctamente!");
+      queryClient.invalidateQueries();
+    },
   });
   const mutationDeleteHogar = useMutation({
     mutationFn: deleteHome,
     onSuccess: () => {
+      toast("Hogar borrado correctamente!", {
+        icon: "🗑️",
+      });
       queryClient.invalidateQueries();
       navigate("/");
+    },
+  });
+  const mutationInivteHogar = useMutation({
+    mutationFn: postInvite,
+    onSuccess: (data) => {
+      if (data.success === false) {
+        toast.error(data.message);
+      } else {
+        toast.success(data.message);
+      }
+      queryClient.invalidateQueries();
     },
   });
 
@@ -75,21 +110,31 @@ export default function () {
     mutationDeleteHogar.mutate(hogar_id);
   };
 
+  const onSubmitInviteHogar = (data) => {
+    mutationInivteHogar.mutate({ ...data, id: hogar_id });
+  };
+
   return (
     <>
       <main className="relative h-full flex flex-col justify-center items-center gap-5">
         <div className="flex flex-row justify-center gap-3 items-center">
-          <p
-            className={`hover:scale-105 cursor-pointer ${
-              active.hogar && "border-b-2 border-[color:var(--color-primary)] "
-            } `}
-            onClick={() => {
-              setActive({ hogar: true, productos: false, listas: false });
-            }}
-          >
-            🏡 Hogar
-          </p>
-          <span className="border-r-2 h-5 inline-block"></span>
+          {isOwner && (
+            <>
+              {" "}
+              <p
+                className={`hover:scale-105 cursor-pointer ${
+                  active.hogar &&
+                  "border-b-2 border-[color:var(--color-primary)] "
+                } `}
+                onClick={() => {
+                  setActive({ hogar: true, productos: false, listas: false });
+                }}
+              >
+                🏡 Hogar
+              </p>
+              <span className="border-r-2 h-5 inline-block"></span>
+             </>
+          )}
 
           <p
             className={`hover:scale-105 cursor-pointer ${
@@ -152,65 +197,86 @@ export default function () {
             Ha habido un error recarga la página
           </div>
         )}
-        {active.hogar && (
-          <form
-            onSubmit={handleSubmit(onSubmitUpdateHogar)}
-            className="flex flex-col w-full md:w-80 justify-center items-center gap-5"
-          >
-            <div
-              className="w-40 h-40 bg-cover bg-center rounded-full relative"
-              style={{
-                backgroundImage: `url(${
-                  filePreview
-                    ? filePreview
-                    : dataHogar?.image
-                    ? `https://res.cloudinary.com/${
-                        import.meta.env.VITE_NAME_CLOUDINARY
-                      }/image/upload/f_auto,q_auto,w_500/${dataHogar.image}`
-                    : "/IMG.jpg"
-                })`,
-              }}
+        {active.hogar && isOwner && (
+          <>
+            <form
+              onSubmit={handleSubmit(onSubmitUpdateHogar)}
+              className="flex flex-col w-full md:w-80 justify-center items-center gap-5"
             >
-              <input
-                type="file"
-                id="file"
-                className="w-full h-full rounded-full hidden"
-                name="file"
-                {...register("file")}
-              />
-              <label
-                htmlFor="file"
-                className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-full flex justify-center items-center text-6xl"
-              >
-                {filePreview || dataHogar?.image ? (
-                  <IoSyncOutline className="w-10" />
-                ) : (
-                  "+"
-                )}
-              </label>
-            </div>
-            <InputGeneral
-              defaultValue={dataHogar?.name}
-              type="text"
-              id="name"
-              name="name"
-              {...register("name")}
-            />
-            <div className="flex flex-row justify-between w-full">
-              <ButtonGeneral
-                onClick={() => {
-                  setModalDeleteHogar(true);
+              <div
+                className="w-40 h-40 bg-cover bg-center rounded-full relative"
+                style={{
+                  backgroundImage: `url(${
+                    filePreview
+                      ? filePreview
+                      : dataHogar?.image
+                      ? `https://res.cloudinary.com/${
+                          import.meta.env.VITE_NAME_CLOUDINARY
+                        }/image/upload/f_auto,q_auto,w_500/${dataHogar.image}`
+                      : "/IMG.jpg"
+                  })`,
                 }}
-                className="top-0 right-0 bg-red-500 hover:bg-red-600"
-                children={<FaRegTrashAlt className="text-2xl" />}
+              >
+                <input
+                  type="file"
+                  id="file"
+                  className="w-full h-full rounded-full hidden"
+                  name="file"
+                  {...register("file")}
+                />
+                <label
+                  htmlFor="file"
+                  className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-full flex justify-center items-center text-6xl"
+                >
+                  {filePreview || dataHogar?.image ? (
+                    <IoSyncOutline className="w-10" />
+                  ) : (
+                    "+"
+                  )}
+                </label>
+              </div>
+              <InputGeneral
+                defaultValue={dataHogar?.name}
+                type="text"
+                id="name"
+                name="name"
+                {...register("name")}
+              />
+              <div className="flex flex-row justify-between w-full">
+                <ButtonGeneral
+                  onClick={() => {
+                    setModalDeleteHogar(true);
+                  }}
+                  className="top-0 right-0 bg-red-500 hover:bg-red-600"
+                  children={<FaRegTrashAlt className="text-2xl" />}
+                />
+                <ButtonGeneral
+                  type="submit"
+                  children="Guardar los cambios"
+                  className="text-white"
+                />
+              </div>
+            </form>
+            <h2 className="border-t-1 text-center pt-5 mt-2">
+              Invitar al hogar
+            </h2>
+            <form
+              onSubmit={handleSubmit(onSubmitInviteHogar)}
+              className="flex flex-row w-full md:w-80 justify-center items-center gap-5"
+            >
+              <InputGeneral
+                type="email"
+                id="email"
+                name="email"
+                {...register("email")}
               />
               <ButtonGeneral
                 type="submit"
-                children="Guardar los cambios"
+                children="Invitar"
                 className="text-white"
               />
-            </div>
-          </form>
+            </form>
+          </>
         )}
         {active.productos && (
           <>
@@ -263,7 +329,6 @@ export default function () {
             </div>
           </>
         )}
-
         {active.listas && (
           <div
             className={`bottom-5 right-5 z-40 ${
