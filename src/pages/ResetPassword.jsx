@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 export default function ResetPassword() {
   const [messageInfo, setMessageInfo] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loadingAnimation, setLoadingAnimation] = useState(false);
   const [validation, setValidation] = useState({
     passwordConfirm: false,
     pass7: false,
@@ -34,24 +35,25 @@ export default function ResetPassword() {
   const token = searchParams.get("token");
 
   const mutation = useMutation({
-    mutationFn: async (data) => {
-      const reponse = await tryResetPassword({ data, token });
-      if (reponse.message === "Contraseña actualizada correctamente") {
+    mutationFn: tryResetPassword,
+    onSuccess: (response) => {
+      setLoadingAnimation(false);
+      if (response.message === "Contraseña actualizada correctamente") {
         reset();
         navigate("/login");
         refetchUser();
       }
 
-      if (reponse.message !== "Server error") {
-        setMessageInfo(reponse.message);
+      if (response.message !== "Server error") {
+        setMessageInfo(response.message);
       }
     },
   });
 
   const mutationCheckToken = useMutation({
     mutationFn: async (data) => {
-      const reponse = await tryCheckToken( data );
-      if (reponse.message !== "Token valido") {
+      const response = await tryCheckToken(data);
+      if (response.message !== "Token valido") {
         navigate("/login");
         refetchUser();
       }
@@ -83,12 +85,12 @@ export default function ResetPassword() {
   }, [password, passwordConfirm]);
 
   useEffect(() => {
+    console.log(token);
     if (!token) {
-      console.log("no hay")
-      navigate("/login")
+      console.log("no hay");
+      navigate("/login");
     }
-    mutationCheckToken.mutate(token)
-
+    mutationCheckToken.mutate(token);
   }, []);
 
   const onSubmit = (data) => {
@@ -96,7 +98,8 @@ export default function ResetPassword() {
       setMessageInfo("La contraseña no es la misma");
       return;
     }
-    mutation.mutate(data);
+    setLoadingAnimation(true);
+    mutation.mutate({ data, token });
   };
   return (
     <>
@@ -205,6 +208,7 @@ export default function ResetPassword() {
               </a>
 
               <ButtonGeneral
+                loading={loadingAnimation}
                 children={"Cambiar contraseña"}
                 type="submit"
                 className="text-white"

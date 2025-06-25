@@ -30,6 +30,19 @@ export const tryRegister = async (data) => {
   }
 };
 
+export const tryRegisterSpecial = async (data) => {
+  try {
+    const response = await api.post("/member/register-special", data);
+
+    if (response.data.token) {
+      Cookies.set("token", response.data.token, { expires: 30 });
+    }
+    return response.data;
+  } catch (error) {
+    return { success: false, message: error.response.data.message };
+  }
+};
+
 export const tryLogout = async () => {
   Cookies.remove("token");
 };
@@ -51,7 +64,6 @@ export const tryMe = async (token) => {
 };
 
 export const tryForgotPassword = async (data) => {
-  console.log(data)
   try {
     const response = await api.post("/forgot-password", data);
 

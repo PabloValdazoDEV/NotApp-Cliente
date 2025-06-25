@@ -1,14 +1,14 @@
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { tryRegister } from "../api/auth";
-import { useNavigate } from "react-router";
+import { tryCheckToken, tryRegisterSpecial } from "../api/auth";
+import { useNavigate, useSearchParams } from "react-router";
 import { useSetAtom } from "jotai";
 import { fetchUser } from "../store/userAtom";
 import InputGeneral from "../components/Input/InputGeneral";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
 import { useEffect, useState } from "react";
 
-export default function Register() {
+export default function RegisterSpecial() {
   const [messageInfo, setMessageInfo] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loadingAnimation, setLoadingAnimation] = useState(false);
@@ -32,24 +32,45 @@ export default function Register() {
   const navigate = useNavigate();
   const refetchUser = useSetAtom(fetchUser);
 
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+
   const mutation = useMutation({
-    mutationFn: tryRegister,
-    onSuccess: (reponse) => {
+    mutationFn: tryRegisterSpecial,
+    onSuccess: (response) => {
       setLoadingAnimation(false);
       if (
-        reponse.message === "Usuario registrado correctamente" &&
-        reponse.token
+        response.message === "Usuario registrado correctamente" &&
+        response.token
       ) {
         reset();
         navigate("/");
         refetchUser();
       }
 
-      if (reponse.message !== "Server error") {
-        setMessageInfo(reponse.message);
+      if (response.message !== "Server error") {
+        setMessageInfo(response.message);
       }
     },
   });
+
+  const mutationCheckToken = useMutation({
+    mutationFn: tryCheckToken,
+    onSuccess: (response) => {
+      if (response.message !== "Token valido") {
+        navigate("/login");
+        refetchUser();
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (!token) {
+      console.log("no hay");
+      navigate("/login");
+    }
+    mutationCheckToken.mutate(token);
+  }, []);
 
   const password = watch("password");
   const passwordConfirm = watch("passwordConfirm");
@@ -98,7 +119,8 @@ export default function Register() {
       setMessageInfo("La contraseña no es la misma");
       return;
     }
-    mutation.mutate(data);
+    setLoadingAnimation(true);
+    mutation.mutate({ ...data, token: token });
   };
   return (
     <>

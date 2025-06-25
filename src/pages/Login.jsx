@@ -12,6 +12,7 @@ export default function Login() {
   const [messageInfo, setMessageInfo] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
+  const [loadingAnimation, setLoadingAnimation] = useState(false);
 
   const {
     handleSubmit,
@@ -25,8 +26,9 @@ export default function Login() {
   const refetchUser = useSetAtom(fetchUser);
 
   const mutation = useMutation({
-    mutationFn: async (data) => {
-      const reponse = await tryLogin(data);
+    mutationFn: tryLogin,
+    onSuccess: (reponse) => {
+      setLoadingAnimation(false);
       if (reponse.message === "Credenciales correctas" && reponse.token) {
         reset();
         navigate("/");
@@ -39,8 +41,9 @@ export default function Login() {
     },
   });
   const mutationForgotPassword = useMutation({
-    mutationFn: async (data) => {
-      const reponse = await tryForgotPassword(data);
+    mutationFn: tryForgotPassword,
+    onSuccess: (reponse) => {
+      setLoadingAnimation(false);
       if (reponse.message === "Correo de recuperación enviado") {
         reset();
         setMessageInfo(reponse.message);
@@ -53,9 +56,11 @@ export default function Login() {
   });
 
   const onSubmitLogin = (data) => {
+    setLoadingAnimation(true);
     mutation.mutate(data);
   };
   const onSubmitForgotPassword = (data) => {
+    setLoadingAnimation(true);
     mutationForgotPassword.mutate(data);
   };
 
@@ -151,6 +156,7 @@ export default function Login() {
                 </a>
 
                 <ButtonGeneral
+                  loading={loadingAnimation}
                   children={"Ingresar"}
                   type="submit"
                   className="text-white"
@@ -198,10 +204,11 @@ export default function Login() {
                     setForgotPassword(false);
                   }}
                 >
-                 Volver al login
+                  Volver al login
                 </a>
 
                 <ButtonGeneral
+                  loading={loadingAnimation}
                   children={"Recuperar cuenta"}
                   type="submit"
                   className="text-white"
