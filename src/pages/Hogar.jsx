@@ -13,9 +13,10 @@ import ModalGeneral from "../components/Modal/ModalGeneral";
 import CardItem from "../components/Cards/CardItem";
 import ModalItem from "../components/Modal/ModalItem";
 import toast from "react-hot-toast";
-import { postInvite } from "../api/member";
+import { deleteMember, postInvite, updateMember } from "../api/member";
 import { useAtomValue } from "jotai";
 import { user } from "../store/userAtom";
+import ModalMember from "../components/Modal/ModalMember";
 
 export default function () {
   const queryClient = useQueryClient();
@@ -25,11 +26,10 @@ export default function () {
   const [modalDeleteHogar, setModalDeleteHogar] = useState(false);
   const [modalCreateItem, setModalCreateItem] = useState(false);
   const [modalEditItem, setModalEditItem] = useState(false);
+  const [modalEditMember, setModalEditMember] = useState(null);
   const [dataEdit, setDataEdit] = useState({});
   const [isOwner, setIsOwner] = useState(false);
   const userContext = useAtomValue(user);
-
-  //   console.log(dataEdit)
 
   const [active, setActive] = useState({
     hogar: true,
@@ -42,7 +42,6 @@ export default function () {
 
   const [file] = watch(["file"]);
   const [filePreview] = useFilePreview(file);
-  //   const data = [1, 2, 3];
 
   const {
     data: dataHogar,
@@ -60,12 +59,9 @@ export default function () {
       const isOwner = dataHogar.members.filter(
         (member) => member.user_id === userContext.id
       );
-      setIsOwner(isOwner[0].role === "OWNER" || isOwner[0].role === "ADMIN" );
+      setIsOwner(isOwner[0].role === "OWNER" || isOwner[0].role === "ADMIN");
     }
   }, [dataHogar, userContext]);
-
-  // console.log(dataHogar?.members)
-  // console.log(userContext)
 
   const mutationUpdateHogar = useMutation({
     mutationFn: updateHome,
@@ -84,8 +80,31 @@ export default function () {
       navigate("/");
     },
   });
+
   const mutationInivteHogar = useMutation({
     mutationFn: postInvite,
+    onSuccess: (data) => {
+      if (data.success === false) {
+        toast.error(data.message);
+      } else {
+        toast.success(data.message);
+      }
+      queryClient.invalidateQueries();
+    },
+  });
+  const mutationDeleteMember = useMutation({
+    mutationFn: deleteMember,
+    onSuccess: (data) => {
+      if (data.success === false) {
+        toast.error(data.message);
+      } else {
+        toast.success(data.message);
+      }
+      queryClient.invalidateQueries();
+    },
+  });
+  const mutationUpdateMember = useMutation({
+    mutationFn: updateMember,
     onSuccess: (data) => {
       if (data.success === false) {
         toast.error(data.message);
@@ -133,7 +152,7 @@ export default function () {
                 🏡 Hogar
               </p>
               <span className="border-r-2 h-5 inline-block"></span>
-             </>
+            </>
           )}
 
           <p
@@ -276,6 +295,32 @@ export default function () {
                 className="text-white"
               />
             </form>
+            <div className="w-full md:w-80 space-y-5">
+              {/* {console.log(dataHogar.members)} */}
+              {dataHogar.members.map((member, i) => {
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-row items-center justify-between w-full"
+                  >
+                    <p>
+                      {member.user.name}
+                      {member.role === "OWNER" && " (Dueños del hogar)"}
+                      {member.user_id === userContext.id && " (Tú)"}
+                    </p>{" "}
+                    {member.user_id === userContext.id ||
+                      (member.role !== "OWNER" && (
+                        <ButtonGeneral
+                          children="Editar"
+                          onClick={() => {
+                            setModalEditMember(member);
+                          }}
+                        />
+                      ))}
+                  </div>
+                );
+              })}
+            </div>
           </>
         )}
         {active.productos && (
@@ -389,6 +434,29 @@ export default function () {
             }}
             onClickRed={() => {
               onSubmitDteleteHogar();
+            }}
+          />
+        )}
+        {modalEditMember && (
+          <ModalMember
+            onClickClosed={() => {
+              setModalEditMember(null);
+            }}
+            data={modalEditMember}
+            onClickX={() => {
+              setModalEditMember(null);
+            }}
+            btnDelete={() => {
+              mutationDeleteMember.mutate(modalEditMember.id);
+              setModalEditMember(null);
+            }}
+            btnRol={() => {
+              mutationUpdateMember.mutate({
+                id: modalEditMember.id,
+                role: modalEditMember.role !== "ADMIN" ? "ADMIN" : "MEMBER",
+              });
+
+              setModalEditMember(null);
             }}
           />
         )}

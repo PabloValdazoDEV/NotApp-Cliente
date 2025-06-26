@@ -35,3 +35,25 @@ export const getProfile = async (data) => {
     }
   };
 
+  export const deleteMember = async (data) => {
+
+    try {
+      const response = await api.delete(`/member/delete/${data}`);
+  
+      return response.data;
+    } catch (error) {
+      return { success: false, message: error.response.data.message };
+    }
+  };
+
+  export const updateMember = async (data) => {
+
+    try {
+      const response = await api.post(`/member/edit/${data.id}`, data);
+  
+      return response.data;
+    } catch (error) {
+      return { success: false, message: error.response.data.message };
+    }
+  };
+
