@@ -43,10 +43,15 @@ export default function () {
               Hogares
             </Link>
             <Link
-              to="/invitaciones"
-              className="text-[color:var(--color-text)] hover:text-[color:var(--color-primary)] no-underline"
+              to="/profile#invitations"
+              className="text-[color:var(--color-text)] hover:text-[color:var(--color-primary)] no-underline relative"
             >
-              Invitaciones
+             Invitaciones
+                {userContext?.invitations.length !== 0 && (
+                  <span className=" top-[-5px] right-[-20px] absolute bg-[color:var(--color-primary)] rounded-full aspect-square w-5 h-5 text-xs flex flex-col justify-center items-center text-white">
+                    {userContext?.invitations.length}
+                  </span>
+                )}
             </Link>
             <button
               onClick={() => {
@@ -63,8 +68,13 @@ export default function () {
           {/* Mobile menu button */}
           <button
             onClick={toggleMenu}
-            className="md:hidden text-[color:var(--color-text)] focus:outline-none"
+            className="md:hidden text-[color:var(--color-text)] focus:outline-none relative"
           >
+            {userContext?.invitations.length !== 0 && (
+                  <span className="top-0 right-[-5px] absolute bg-[color:var(--color-primary)] rounded-full aspect-square w-5 h-5 text-xs flex flex-col justify-center items-center text-white">
+                    {userContext?.invitations.length}
+                  </span>
+                )}
             <svg
               className="w-10 h-10"
               fill="none"
@@ -102,10 +112,16 @@ export default function () {
               </Link>
               <hr className="border-1 w-1/3" />
               <Link
-                to="/profile"
-                className="block text-[color:var(--color-text)] text-lg hover:text-[color:var(--color-primary)] no-underline"
+                to="/profile#invitations"
+                onClick={() => setIsOpen(false)}
+                className="block text-[color:var(--color-text)] text-lg hover:text-[color:var(--color-primary)] no-underline relative"
               >
                 Invitaciones
+                {userContext?.invitations.length !== 0 && (
+                  <span className="top-[-5px] right-[-20px] absolute bg-[color:var(--color-primary)] rounded-full aspect-square w-5 h-5 text-xs flex flex-col justify-center items-center text-white">
+                    {userContext?.invitations.length}
+                  </span>
+                )}
               </Link>
               <button
                 onClick={() => {

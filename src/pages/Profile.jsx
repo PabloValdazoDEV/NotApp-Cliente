@@ -10,9 +10,11 @@ import ButtonGeneral from "../components/Buttons/ButtonGeneral";
 import { useEffect, useState } from "react";
 import CardInvitation from "../components/Cards/CardInvitation";
 import toast from "react-hot-toast";
+import { useLocation } from "react-router";
 
 export default function Profile() {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const navigate = useNavigate();
   const userContext = useAtomValue(user);
   const [loadingAnimation, setLoadingAnimation] = useState(false);
@@ -24,6 +26,17 @@ export default function Profile() {
       return getProfile(userContext.id);
     },
   });
+
+  useEffect(() => {
+    if (location.hash === "#invitations") {
+      const element = document.getElementById("invitations");
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth" });
+        }, 250);
+      }
+    }
+  }, [location]);
 
   const {
     handleSubmit,
@@ -146,7 +159,7 @@ export default function Profile() {
         />
       </form>
       <hr id="invitaciones" className="border-1 w-2/3 my-7 mx-auto" />
-      <h2 className="text-center mb-3">Invitaciones</h2>
+      <h2 className="text-center mb-3" id="invitations">Invitaciones</h2>
       <div className="flex flex-col gap-5">
         {/* {console.log(data.user?.invitations)} */}
         {data.user?.invitations.length === 0 ? (

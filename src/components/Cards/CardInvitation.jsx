@@ -5,10 +5,13 @@ import { FaRegTrashAlt } from "react-icons/fa";
 import { useState } from "react";
 import { updateInvitation } from "../../api/member";
 import ModalGeneral from "../Modal/ModalGeneral";
+import { useSetAtom } from "jotai";
+import { fetchUser } from "../../store/userAtom";
 
 export default function CardInvitation({ data }) {
   const [modalDeleteInvitation, setModalDeleteInvitation] = useState(false);
   const queryClient = useQueryClient();
+  const fetchUserContext = useSetAtom(fetchUser);
   const {
     data: dataQuery,
     isLoading,
@@ -23,6 +26,7 @@ export default function CardInvitation({ data }) {
   const mutation = useMutation({
     mutationFn: updateInvitation,
     onSuccess: () => {
+      fetchUserContext()
       setModalDeleteInvitation(false);
       queryClient.invalidateQueries();
     },

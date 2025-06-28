@@ -26,14 +26,16 @@ export default function () {
   const [modalDeleteHogar, setModalDeleteHogar] = useState(false);
   const [modalCreateItem, setModalCreateItem] = useState(false);
   const [modalEditItem, setModalEditItem] = useState(false);
+  const [modalMember, setModalMember] = useState(false);
   const [modalEditMember, setModalEditMember] = useState(null);
   const [dataEdit, setDataEdit] = useState({});
   const [isOwner, setIsOwner] = useState(false);
+  const [loading, setLoading] = useState(false);
   const userContext = useAtomValue(user);
 
   const [active, setActive] = useState({
-    hogar: true,
-    productos: false,
+    hogar: false,
+    productos: true,
     listas: false,
   });
   const navigate = useNavigate();
@@ -66,6 +68,7 @@ export default function () {
   const mutationUpdateHogar = useMutation({
     mutationFn: updateHome,
     onSuccess: () => {
+      setLoading(false);
       toast.success("Hogar actualizado correctamente!");
       queryClient.invalidateQueries();
     },
@@ -123,6 +126,7 @@ export default function () {
     if (data.name.trim().length === 0) {
       setValue("name", dataHogar.name);
     }
+    setLoading(true);
     mutationUpdateHogar.mutate({ ...data, id: hogar_id, file: data.file[0] });
   };
   const onSubmitDteleteHogar = () => {
@@ -137,9 +141,7 @@ export default function () {
     <>
       <main className="relative h-full flex flex-col justify-center items-center gap-5">
         <div className="flex flex-row justify-center gap-3 items-center">
-          {isOwner && (
-            <>
-              {" "}
+
               <p
                 className={`hover:scale-105 cursor-pointer ${
                   active.hogar &&
@@ -152,8 +154,7 @@ export default function () {
                 🏡 Hogar
               </p>
               <span className="border-r-2 h-5 inline-block"></span>
-            </>
-          )}
+
 
           <p
             className={`hover:scale-105 cursor-pointer ${
@@ -216,6 +217,14 @@ export default function () {
             Ha habido un error recarga la página
           </div>
         )}
+        {active.hogar && !isOwner && (
+          <ButtonGeneral
+            children="Salir del hogar"
+            onClick={() => {
+              setModalMember(true);
+            }}
+          />
+        )}
         {active.hogar && isOwner && (
           <>
             <form
@@ -270,6 +279,7 @@ export default function () {
                   children={<FaRegTrashAlt className="text-2xl" />}
                 />
                 <ButtonGeneral
+                  loading={loading}
                   type="submit"
                   children="Guardar los cambios"
                   className="text-white"
@@ -457,6 +467,26 @@ export default function () {
               });
 
               setModalEditMember(null);
+            }}
+          />
+        )}
+        {modalMember && (
+          <ModalGeneral
+            titulo={`Salir de ${dataHogar?.name}`}
+            text="No podras acceder a las lista de este hogar."
+            textBtnGreen="Cancelar"
+            textBtnRed="Salir"
+            onClickGreen={() => {
+              setModalMember(false);
+            }}
+            onClickRed={() => {
+              const myMember = dataHogar.members.filter(
+                (member) => member.user_id === userContext.id
+              );
+              if (myMember[0].id) {
+                navigate("/home");
+              }
+              mutationDeleteMember.mutate(myMember[0].id);
             }}
           />
         )}
