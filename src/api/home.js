@@ -43,7 +43,6 @@ export const updateHome = async (data) => {
 };
 
 export const deleteHome = async (data) => {
-    console.log(data)
   try {
     const response = await api.delete(`/home/${data}`);
     return response

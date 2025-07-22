@@ -35,3 +35,13 @@ export const updateItem = async (data) => {
     return { success: false, message: error.response.data.message };
   }
 };
+
+export const filterParams = async (params) => {
+  console.log(params)
+  try {
+    const response = await api.get(`/item/params/${params.id_home}`, {params});
+    return response.data;
+  } catch (error) {
+    return { success: false, message: error.response.data.message };
+  }
+};

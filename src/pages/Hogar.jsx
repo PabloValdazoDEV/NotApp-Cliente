@@ -1,28 +1,36 @@
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import ButtonGeneral from "../components/Buttons/ButtonGeneral";
-import { useEffect, useState } from "react";
-import InputGeneral from "../components/Input/InputGeneral";
+import { useDebugValue, useEffect, useState } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
+import { FiFilter, FiDelete } from "react-icons/fi";
+import { VscClearAll } from "react-icons/vsc";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHome, updateHome, deleteHome } from "../api/home";
-import useFilePreview from "../hooks/useFilePreview";
 import { IoSyncOutline } from "react-icons/io5";
 import { FaRegTrashAlt } from "react-icons/fa";
+import { deleteMember, postInvite, updateMember } from "../api/member";
+import { useAtomValue } from "jotai";
+import { user } from "../store/userAtom";
+import ButtonGeneral from "../components/Buttons/ButtonGeneral";
+import InputGeneral from "../components/Input/InputGeneral";
+import useFilePreview from "../hooks/useFilePreview";
 import ModalGeneral from "../components/Modal/ModalGeneral";
 import CardItem from "../components/Cards/CardItem";
 import ModalItem from "../components/Modal/ModalItem";
 import toast from "react-hot-toast";
-import { deleteMember, postInvite, updateMember } from "../api/member";
-import { useAtomValue } from "jotai";
-import { user } from "../store/userAtom";
 import ModalMember from "../components/Modal/ModalMember";
+import { filterParams } from "../api/item";
 
 export default function () {
   const queryClient = useQueryClient();
-  //   const [searchParams, setSearchParams] = useSearchParams();
-  //   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hogar_id } = useParams();
+  const [elementParams, setElementParams] = useState({
+    element: searchParams.get("element") || "lista",
+    page: Number(searchParams.get("page")) || 1,
+    name: searchParams.get("name") || "",
+    category: searchParams.get("category") || "",
+  });
   const [modalDeleteHogar, setModalDeleteHogar] = useState(false);
   const [modalCreateItem, setModalCreateItem] = useState(false);
   const [modalEditItem, setModalEditItem] = useState(false);
@@ -40,7 +48,7 @@ export default function () {
   });
   const navigate = useNavigate();
 
-  const { register, handleSubmit, setValue, watch } = useForm();
+  const { register, handleSubmit, setValue, watch, reset } = useForm();
 
   const [file] = watch(["file"]);
   const [filePreview] = useFilePreview(file);
@@ -83,7 +91,6 @@ export default function () {
       navigate("/");
     },
   });
-
   const mutationInivteHogar = useMutation({
     mutationFn: postInvite,
     onSuccess: (data) => {
@@ -118,8 +125,63 @@ export default function () {
     },
   });
 
-  const onSubmit = (data) => {
+  useEffect(() => {
+    setSearchParams(elementParams, { replace: true });
+    mutateFilterParams(elementParams);
+  }, [elementParams]);
+
+  useEffect(() => {
+    setSearchParams(elementParams, { replace: true });
+  }, []);
+
+  const {
+    mutate: mutateFilterParams,
+    data: dataParamsMutate,
+    isLoading: isLoadingParamsMutate,
+    error: errorParamsMutate,
+  } = useMutation({
+    mutationFn: (params) => filterParams({ ...params, id_home: hogar_id }),
+    onSuccess: (data) => {
+      if (data.success === false) {
+        toast.error(data.message);
+      }
+      queryClient.invalidateQueries();
+    },
+  });
+
+  // const {
+  //   data: dataParams,
+  //   isLoading: isLoadingParams,
+  //   error: errorParams,
+  // } = useQuery({
+  //   queryKey: ["filterParams", [hogar_id]],
+  //   queryFn: () => {
+  //     return filterParams({ ...elementParams, id_home: hogar_id });
+  //   },
+  // });
+
+  // if (dataParams) {
+  //   console.log(dataParams);
+  // }
+
+  const onSubmiFindItems = (data) => {
+    setElementParams({
+      ...elementParams,
+      name: data.nameFindItemMobile || data.nameFindItem,
+      element: "productos",
+    });
+  };
+  const onSubmiFindList = (data) => {
     console.log(data);
+  };
+  const onSubmitClearParams = () => {
+    setElementParams({
+      element: "",
+      page: 1,
+      name: "",
+      category: "",
+    });
+    reset()
   };
 
   const onSubmitUpdateHogar = (data) => {
@@ -141,20 +203,17 @@ export default function () {
     <>
       <main className="relative h-full flex flex-col justify-center items-center gap-5">
         <div className="flex flex-row justify-center gap-3 items-center">
-
-              <p
-                className={`hover:scale-105 cursor-pointer ${
-                  active.hogar &&
-                  "border-b-2 border-[color:var(--color-primary)] "
-                } `}
-                onClick={() => {
-                  setActive({ hogar: true, productos: false, listas: false });
-                }}
-              >
-                🏡 Hogar
-              </p>
-              <span className="border-r-2 h-5 inline-block"></span>
-
+          <p
+            className={`hover:scale-105 cursor-pointer ${
+              active.hogar && "border-b-2 border-[color:var(--color-primary)] "
+            } `}
+            onClick={() => {
+              setActive({ hogar: true, productos: false, listas: false });
+            }}
+          >
+            🏡 Hogar
+          </p>
+          <span className="border-r-2 h-5 inline-block"></span>
 
           <p
             className={`hover:scale-105 cursor-pointer ${
@@ -184,37 +243,62 @@ export default function () {
               active.hogar && "md:hidden"
             }`}
           >
-            <InputGeneral />
-            <ButtonGeneral
-              children={<FaMagnifyingGlass className="text-xl text-white" />}
-            />
+            {active.productos && (
+              <form
+                onSubmit={handleSubmit(onSubmiFindItems)}
+                className={`flex flex-row gap-3  w-full`}
+              >
+                <InputGeneral
+                  placeholder="Nombre del Pro..."
+                  type="text"
+                  id="nameFindItem"
+                  name="nameFindItem"
+                  {...register("nameFindItem")}
+                />
+                <ButtonGeneral
+                  onClick={()=>{onSubmitClearParams()}}
+                  className="bg-amber-600 hover:bg-amber-700"
+                  children={<VscClearAll className="text-xl text-white " />}
+                />
+                <ButtonGeneral
+                  type="submit"
+                  children={
+                    <FaMagnifyingGlass className="text-xl text-white" />
+                  }
+                />
+              </form>
+            )}
+            {active.listas && (
+              <form
+                onSubmit={handleSubmit(onSubmiFindList)}
+                className={`flex flex-row gap-3  w-full`}
+              >
+                <InputGeneral
+                  placeholder="Nombre de la List..."
+                  type="text"
+                  id="nameFindList"
+                  name="nameFindList"
+                  {...register("nameFindList")}
+                />
+                <ButtonGeneral
+                  onClick={()=>{onSubmitClearParams()}}
+                  className="bg-amber-600 hover:bg-amber-700"
+                  children={<VscClearAll className="text-xl text-white" />}
+                />
+                <ButtonGeneral
+                  type="submit"
+                  children={
+                    <FaMagnifyingGlass className="text-xl text-white" />
+                  }
+                />
+              </form>
+            )}
           </div>
         </div>
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className={`flex flex-row gap-3 md:hidden w-full ${
-            active.hogar && "hidden"
-          }`}
-        >
-          <InputGeneral
-            placeholder={`Nombre ${
-              active.listas ? "de la Lista" : "del Producto"
-            }`}
-            type="text"
-            id="nameFind"
-            name="nameFind"
-            {...register("nameFind")}
-          />
-          <ButtonGeneral
-            type="submit"
-            children={<FaMagnifyingGlass className="text-xl text-white" />}
-          />
-        </form>
-
         {isLoading && <p className="col-span-4 text-center">Cargando...</p>}
         {error && (
           <div className="col-span-4 text-center">
-            Ha habido un error recarga la página
+            Ha habido un error, recarga la página.
           </div>
         )}
         {active.hogar && !isOwner && (
@@ -335,8 +419,31 @@ export default function () {
         )}
         {active.productos && (
           <>
+            <form
+              onSubmit={handleSubmit(onSubmiFindItems)}
+              className={`flex flex-row gap-3 md:hidden w-full ${
+                active.hogar && "hidden"
+              }`}
+            >
+              <InputGeneral
+                placeholder="Nombre del Pro..."
+                type="text"
+                id="nameFindItemMobile"
+                name="nameFindItemMobile"
+                {...register("nameFindItemMobile")}
+              />
+              <ButtonGeneral
+                onClick={()=>{onSubmitClearParams()}}
+                className="bg-amber-600 hover:bg-amber-700"
+                children={<VscClearAll className="text-xl text-white" />}
+              />
+              <ButtonGeneral
+                type="submit"
+                children={<FaMagnifyingGlass className="text-xl text-white" />}
+              />
+            </form>
             <div className="grid md:grid-cols-2 md:gap-10">
-              {dataHogar?.items.map((item, i) => {
+              {dataParamsMutate?.map((item, i) => {
                 return (
                   <CardItem
                     key={i}
@@ -352,9 +459,9 @@ export default function () {
             </div>
             <div
               className={`bottom-5 right-5 z-40 ${
-                dataHogar?.items?.length < 3 ? "static" : "fixed"
-              } ${dataHogar?.items?.length < 6 ? "md:static" : "md:fixed"} ${
-                dataHogar?.items?.length < 9 ? "lg:static" : "lg:fixed"
+                dataParamsMutate?.length < 3 ? "static" : "fixed"
+              } ${dataParamsMutate?.length < 6 ? "md:static" : "md:fixed"} ${
+                dataParamsMutate?.length < 9 ? "lg:static" : "lg:fixed"
               }`}
             >
               <ButtonGeneral
@@ -385,43 +492,69 @@ export default function () {
           </>
         )}
         {active.listas && (
-          <div
-            className={`bottom-5 right-5 z-40 ${
-              dataHogar?.listas?.length < 5 ? "static" : "fixed"
-            } ${dataHogar?.listas?.length < 9 ? "md:static" : "md:fixed"} ${
-              dataHogar?.listas?.length < 12 ? "lg:static" : "lg:fixed"
-            }`}
-          >
-            <ButtonGeneral
-              className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
-              onClick={() => {
-                // navigate("/hogar/crear-hogar");
-              }}
-              children={
-                <>
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 6v12M6 12h12"
-                    />
-                  </svg>
-                  <span>Crear un Lista</span>
-                </>
-              }
-            />
-          </div>
+          <>
+            <form
+              onSubmit={handleSubmit(onSubmiFindList)}
+              className={`flex flex-row gap-3 md:hidden w-full ${
+                active.hogar && "hidden"
+              }`}
+            >
+              <InputGeneral
+                placeholder="Nombre de la List..."
+                type="text"
+                id="nameFindListMobile"
+                name="nameFindListMobile"
+                {...register("nameFindListMobile")}
+              />
+              <ButtonGeneral
+                onClick={()=>{onSubmitClearParams()}}
+                className="bg-amber-600 hover:bg-amber-700"
+                children={<VscClearAll className="text-xl text-white" />}
+              />
+              <ButtonGeneral
+                type="submit"
+                children={<FaMagnifyingGlass className="text-xl text-white" />}
+              />
+            </form>
+            <div
+              className={`bottom-5 right-5 z-40 ${
+                dataHogar?.listas?.length < 5 ? "static" : "fixed"
+              } ${dataHogar?.listas?.length < 9 ? "md:static" : "md:fixed"} ${
+                dataHogar?.listas?.length < 12 ? "lg:static" : "lg:fixed"
+              }`}
+            >
+              <ButtonGeneral
+                className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
+                onClick={() => {
+                  // navigate("/hogar/crear-hogar");
+                }}
+                children={
+                  <>
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 6v12M6 12h12"
+                      />
+                    </svg>
+                    <span>Crear un Lista</span>
+                  </>
+                }
+              />
+            </div>
+          </>
         )}
         {modalCreateItem && (
           <ModalItem
             onClickClosed={() => {
               setModalCreateItem(false);
+              mutateFilterParams(elementParams);
             }}
           />
         )}
@@ -429,6 +562,7 @@ export default function () {
           <ModalItem
             onClickClosed={() => {
               setModalEditItem(false);
+              mutateFilterParams(elementParams);
             }}
             data={dataEdit}
           />

@@ -24,6 +24,9 @@ export default function SelectCategory({ value, onChange }) {
         <option value="" hidden>
           Selecciona
         </option>
+        <option value="0">
+          Vacio
+        </option>
         {Object.entries(CATEGORIES).map(([key, label]) => (
           <option key={key} value={key}>
             {label}

@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import ButtonGeneral from "../Buttons/ButtonGeneral";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import useFilePreview from "../../hooks/useFilePreview";
 import InputGeneral from "../Input/InputGeneral";
 import SelectCategory from "../Input/SelectCategory";
@@ -11,6 +11,7 @@ import ModalGeneral from "./ModalGeneral";
 import toast from "react-hot-toast";
 
 export default function ModalItem({ onClickClosed, data }) {
+  const queryClient = useQueryClient();
   const [categories, setCategories] = useState({
     first: data?.categories[0] || null,
     second: data?.categories[1] || null,
@@ -43,6 +44,7 @@ export default function ModalItem({ onClickClosed, data }) {
       toast.success("Producto creado correctamente!");
       setLoadingAnimation(false)
       onClickClosed();
+      queryClient.invalidateQueries();
     },onError:()=>{
       toast.error("Error al crear el producto!")
     }
@@ -53,6 +55,7 @@ export default function ModalItem({ onClickClosed, data }) {
       toast.success("Producto actualizado correctamente!");
       setLoadingAnimation(false)
       onClickClosed();
+      queryClient.invalidateQueries();
     },onError:()=>{
       toast.error("Error al actualizar el producto!")
     }
@@ -65,6 +68,7 @@ export default function ModalItem({ onClickClosed, data }) {
         icon: '🗑️',
       });
       onClickClosed();
+      queryClient.invalidateQueries();
     },onError:()=>{
       toast.error("Error al borrar el producto!")
     }
