@@ -20,7 +20,7 @@ export default function CardItem({ data, active, editClick }) {
               src={`https://res.cloudinary.com/${
                 import.meta.env.VITE_NAME_CLOUDINARY
               }/image/upload/f_auto,q_auto,w_500/${data.image}`}
-              className="col-span-3 row-span-4 h-full aspect-square object-cover rounded-2xl"
+              className="col-span-3 row-span-4 h-auto aspect-square object-cover rounded-2xl"
             />
           )}
 

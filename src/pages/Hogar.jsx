@@ -181,7 +181,7 @@ export default function () {
       name: "",
       category: "",
     });
-    reset()
+    reset();
   };
 
   const onSubmitUpdateHogar = (data) => {
@@ -198,6 +198,34 @@ export default function () {
   const onSubmitInviteHogar = (data) => {
     mutationInivteHogar.mutate({ ...data, id: hogar_id });
   };
+
+  const paginationHtml = [];
+
+  {
+    for (let i = 0; i < 5; i++) {
+      if (+elementParams.page + i - 2 > 0) {
+        paginationHtml.push(
+          <button
+            key={i}
+            onClick={() =>
+              setElementParams({
+                ...elementParams,
+                page: +elementParams.page + i - 2,
+              })
+            }
+            disabled={i == 2 || (dataParamsMutate?.length != 10 && i > 2)}
+            className={`bg-[color:var(--color-primary)] text-sm text-white px-3 py-2 rounded  ${
+              i == 2 || (dataParamsMutate?.length != 10 && i > 2)
+                ? "bg-[color:var(--color-primary)]/50"
+                : "bg-[color:var(--color-primary)] cursor-pointer transition-transform duration-200 hover:scale-105"
+            }`}
+          >
+            {+elementParams.page + i - 2}
+          </button>
+        );
+      }
+    }
+  }
 
   return (
     <>
@@ -256,7 +284,9 @@ export default function () {
                   {...register("nameFindItem")}
                 />
                 <ButtonGeneral
-                  onClick={()=>{onSubmitClearParams()}}
+                  onClick={() => {
+                    onSubmitClearParams();
+                  }}
                   className="bg-amber-600 hover:bg-amber-700"
                   children={<VscClearAll className="text-xl text-white " />}
                 />
@@ -281,7 +311,9 @@ export default function () {
                   {...register("nameFindList")}
                 />
                 <ButtonGeneral
-                  onClick={()=>{onSubmitClearParams()}}
+                  onClick={() => {
+                    onSubmitClearParams();
+                  }}
                   className="bg-amber-600 hover:bg-amber-700"
                   children={<VscClearAll className="text-xl text-white" />}
                 />
@@ -433,7 +465,9 @@ export default function () {
                 {...register("nameFindItemMobile")}
               />
               <ButtonGeneral
-                onClick={()=>{onSubmitClearParams()}}
+                onClick={() => {
+                  onSubmitClearParams();
+                }}
                 className="bg-amber-600 hover:bg-amber-700"
                 children={<VscClearAll className="text-xl text-white" />}
               />
@@ -489,6 +523,41 @@ export default function () {
                 }
               />
             </div>
+            <div className="flex flex-row justify-center items-center w-full py-5 gap-3">
+              <button
+                onClick={() =>
+                  setElementParams({
+                    ...elementParams,
+                    page: elementParams.page - 1,
+                  })
+                }
+                className={`bg-[color:var(--color-primary)] text-sm text-white px-3 py-2 rounded  ${
+                  elementParams.page <= 1
+                    ? "bg-[color:var(--color-primary)]/50"
+                    : "cursor-pointer transition-transform duration-200 hover:scale-105"
+                }`}
+                disabled={elementParams.page == 1}
+              >
+                Anterior
+              </button>
+              {paginationHtml.map((pagination) => pagination)}
+              <button
+                onClick={() =>
+                  setElementParams({
+                    ...elementParams,
+                    page: +elementParams.page + 1,
+                  })
+                }
+                className={`bg-[color:var(--color-primary)] text-sm text-white px-3 py-2 rounded  ${
+                  dataParamsMutate?.length != 10
+                    ? "bg-[color:var(--color-primary)]/50"
+                    : "cursor-pointer transition-transform duration-200 hover:scale-105"
+                }`}
+                disabled={dataParamsMutate?.length != 10}
+              >
+                Siguiente
+              </button>
+            </div>
           </>
         )}
         {active.listas && (
@@ -507,7 +576,9 @@ export default function () {
                 {...register("nameFindListMobile")}
               />
               <ButtonGeneral
-                onClick={()=>{onSubmitClearParams()}}
+                onClick={() => {
+                  onSubmitClearParams();
+                }}
                 className="bg-amber-600 hover:bg-amber-700"
                 children={<VscClearAll className="text-xl text-white" />}
               />

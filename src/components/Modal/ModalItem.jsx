@@ -9,6 +9,7 @@ import { deleteItem, postItem, updateItem } from "../../api/item";
 import { useParams } from "react-router";
 import ModalGeneral from "./ModalGeneral";
 import toast from "react-hot-toast";
+import { FaRegTrashAlt } from "react-icons/fa";
 
 export default function ModalItem({ onClickClosed, data }) {
   const queryClient = useQueryClient();
@@ -21,6 +22,8 @@ export default function ModalItem({ onClickClosed, data }) {
   const { hogar_id } = useParams();
   const [modalDelete, setModalDelete] = useState(false);
   const [loadingAnimation, setLoadingAnimation] = useState(false);
+  const [imageRemoved, setImageRemoved] = useState(false);
+
 
   const {
     handleSubmit,
@@ -30,7 +33,6 @@ export default function ModalItem({ onClickClosed, data }) {
     watch,
     setValue,
   } = useForm();
-
 
   useEffect(() => {
     setValue("name", data?.name);
@@ -42,36 +44,41 @@ export default function ModalItem({ onClickClosed, data }) {
     mutationFn: postItem,
     onSuccess: () => {
       toast.success("Producto creado correctamente!");
-      setLoadingAnimation(false)
+      setLoadingAnimation(false);
       onClickClosed();
       queryClient.invalidateQueries();
-    },onError:()=>{
-      toast.error("Error al crear el producto!")
-    }
+    },
+    onError: () => {
+      toast.error("Error al crear el producto!");
+    },
   });
   const mutationUpdate = useMutation({
     mutationFn: updateItem,
     onSuccess: () => {
       toast.success("Producto actualizado correctamente!");
-      setLoadingAnimation(false)
+      setLoadingAnimation(false);
+      setImageRemoved(false)
       onClickClosed();
       queryClient.invalidateQueries();
-    },onError:()=>{
-      toast.error("Error al actualizar el producto!")
-    }
+    },
+    onError: () => {
+      toast.error("Error al actualizar el producto!");
+    },
   });
 
   const mutationDelete = useMutation({
     mutationFn: deleteItem,
     onSuccess: () => {
-      toast('Producto borrado correctamente!', {
-        icon: '🗑️',
+      toast("Producto borrado correctamente!", {
+        icon: "🗑️",
       });
       onClickClosed();
+      setImageRemoved(false)
       queryClient.invalidateQueries();
-    },onError:()=>{
-      toast.error("Error al borrar el producto!")
-    }
+    },
+    onError: () => {
+      toast.error("Error al borrar el producto!");
+    },
   });
 
   const onSubmitDteleteItem = () => {
@@ -83,22 +90,25 @@ export default function ModalItem({ onClickClosed, data }) {
       const formData = {
         ...dataFrom,
         item_id: data.id,
-        file: dataFrom?.file[0] ? dataFrom?.file[0] : null,
+        file: dataFrom?.file?.[0] ?  dataFrom?.file?.[0] :  null,
         categories: [categories.first, categories.second, categories.third],
+        imageDelete: imageRemoved
       };
-      setLoadingAnimation(true)
+      setLoadingAnimation(true);
       mutationUpdate.mutate(formData);
     } else {
       const formData = {
         ...dataFrom,
         hogar_id: hogar_id,
-        file: dataFrom?.file[0],
+        file: imageRemoved ? null : dataFrom?.file[0],
         categories: [categories.first, categories.second, categories.third],
       };
-      setLoadingAnimation(true)
+      setLoadingAnimation(true);
       mutation.mutate(formData);
     }
   };
+
+  useEffect(()=>{setImageRemoved(false)},[watch("file")])
 
   const [file] = watch(["file"]);
   const [filePreview] = useFilePreview(file);
@@ -113,33 +123,37 @@ export default function ModalItem({ onClickClosed, data }) {
               className="flex flex-col w-full justify-center items-center gap-5"
             >
               <div
-                className="w-40 h-40 bg-cover bg-center rounded-full relative"
+                className="w-40 h-40 bg-cover bg-center rounded-2xl relative"
                 style={{
-                  backgroundImage: `url(${
-                    filePreview
-                      ? filePreview
-                      : data?.image
-                      ? `https://res.cloudinary.com/${
-                          import.meta.env.VITE_NAME_CLOUDINARY
-                        }/image/upload/f_auto,q_auto,w_500/${data.image}`
-                      : "/IMG.jpg"
-                  })`,
+                  backgroundImage: `url(${!imageRemoved ? filePreview ? filePreview : data?.image ? `https://res.cloudinary.com/${import.meta.env.VITE_NAME_CLOUDINARY}/image/upload/f_auto,q_auto,w_500/${data.image}`: "/IMG.jpg" : "/IMG.jpg"})`,
                 }}
               >
                 <input
                   type="file"
                   id="file"
-                  className="w-full h-full rounded-full hidden"
+                  className="w-full h-full rounded-2xl hidden"
                   name="file"
                   {...register("file")}
                 />
                 <label
                   htmlFor="file"
-                  className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-full flex justify-center items-center text-6xl"
+                  className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-2xl flex justify-center items-center text-6xl"
                 >
                   +
                 </label>
+                {/* {(data?.image || !imageRemoved && filePreview) && ( */}
+                <button
+                  onClick={() => {
+                    setImageRemoved(true)
+                  }}
+                  type="button"
+                  children={<FaRegTrashAlt />}
+                  className="text-md bg-red-600 text-white px-3 py-3 rounded-full aspect-square w-auto absolute top-[-15px] right-[-15px]"
+                />
+              {/* )} */}
               </div>
+              
+
               {errors.name && (
                 <p className="text-red-500 text-xs">El nombre es obligatorio</p>
               )}
@@ -231,21 +245,22 @@ export default function ModalItem({ onClickClosed, data }) {
         </div>
       )}
       {modalDelete && (
-       <> <ModalGeneral
-          titulo={`Borrar el hogar ${data?.name}`}
-          text="Se borran todos las listas y los demas miembre no podran acceder nunca mas, se perderan todos los datos."
-          textBtnGreen="Cancelar"
-          textBtnRed="Borrar"
-          onClickGreen={() => {
-            setModalDelete(false);
-          }}
-          onClickRed={() => {
-            onSubmitDteleteItem();
-          }}
-        />
-      </>
+        <>
+          {" "}
+          <ModalGeneral
+            titulo={`Borrar el hogar ${data?.name}`}
+            text="Se borran todos las listas y los demas miembre no podran acceder nunca mas, se perderan todos los datos."
+            textBtnGreen="Cancelar"
+            textBtnRed="Borrar"
+            onClickGreen={() => {
+              setModalDelete(false);
+            }}
+            onClickRed={() => {
+              onSubmitDteleteItem();
+            }}
+          />
+        </>
       )}
-      
     </>
   );
 }
