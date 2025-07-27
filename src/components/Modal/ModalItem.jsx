@@ -141,7 +141,6 @@ export default function ModalItem({ onClickClosed, data }) {
                 >
                   +
                 </label>
-                {/* {(data?.image || !imageRemoved && filePreview) && ( */}
                 <button
                   onClick={() => {
                     setImageRemoved(true)
@@ -150,7 +149,6 @@ export default function ModalItem({ onClickClosed, data }) {
                   children={<FaRegTrashAlt />}
                   className="text-md bg-red-600 text-white px-3 py-3 rounded-full aspect-square w-auto absolute top-[-15px] right-[-15px]"
                 />
-              {/* )} */}
               </div>
               
 
