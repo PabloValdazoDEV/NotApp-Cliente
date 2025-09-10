@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { useDebugValue, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { FiFilter, FiDelete } from "react-icons/fi";
 import { VscClearAll } from "react-icons/vsc";
@@ -19,12 +19,22 @@ import CardItem from "../components/Cards/CardItem";
 import ModalItem from "../components/Modal/ModalItem";
 import toast from "react-hot-toast";
 import ModalMember from "../components/Modal/ModalMember";
-import { filterParams } from "../api/item";
+import { filterParamsItems } from "../api/item";
+import { filterParamsList } from "../api/list";
+import CardItemList from "../components/Cards/CardItemList";
+import CardList from "../components/Cards/CardList";
+import ModalList from "../components/Modal/ModalList";
+import InputForm from "../components/Input/InputFind";
+import Pagination from "../components/Pagination/Pagination";
 
 export default function () {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { hogar_id } = useParams();
+  const userContext = useAtomValue(user);
+
+  // UseStates
   const [elementParams, setElementParams] = useState({
     element: searchParams.get("element") || "lista",
     page: Number(searchParams.get("page")) || 1,
@@ -36,17 +46,16 @@ export default function () {
   const [modalEditItem, setModalEditItem] = useState(false);
   const [modalMember, setModalMember] = useState(false);
   const [modalEditMember, setModalEditMember] = useState(null);
+  const [modalCreateList, setModalCreateList] = useState(null);
   const [dataEdit, setDataEdit] = useState({});
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(false);
-  const userContext = useAtomValue(user);
-
+  const [imageRemoved, setImageRemoved] = useState(false);
   const [active, setActive] = useState({
     hogar: false,
-    productos: true,
-    listas: false,
+    productos: elementParams.element === "productos" ? true : false,
+    listas: elementParams.element === "lista" ? true : false,
   });
-  const navigate = useNavigate();
 
   const { register, handleSubmit, setValue, watch, reset } = useForm();
 
@@ -64,14 +73,7 @@ export default function () {
     },
   });
 
-  useEffect(() => {
-    if (dataHogar?.members) {
-      const isOwner = dataHogar.members.filter(
-        (member) => member.user_id === userContext.id
-      );
-      setIsOwner(isOwner[0].role === "OWNER" || isOwner[0].role === "ADMIN");
-    }
-  }, [dataHogar, userContext]);
+  // Mutations
 
   const mutationUpdateHogar = useMutation({
     mutationFn: updateHome,
@@ -125,22 +127,43 @@ export default function () {
     },
   });
 
+  // UseEfects
+
+  useEffect(() => {
+    if (dataHogar?.members) {
+      const isOwner = dataHogar.members.filter(
+        (member) => member.user_id === userContext.id
+      );
+      setIsOwner(isOwner[0].role === "OWNER" || isOwner[0].role === "ADMIN");
+    }
+  }, [dataHogar, userContext]);
+
   useEffect(() => {
     setSearchParams(elementParams, { replace: true });
-    mutateFilterParams(elementParams);
+    if (elementParams.element == "lista") {
+      mutateFilterParamsList(elementParams);
+    } else {
+      mutateFilterParamsItem(elementParams);
+    }
   }, [elementParams]);
 
   useEffect(() => {
     setSearchParams(elementParams, { replace: true });
   }, []);
 
+  useEffect(() => {
+    setImageRemoved(false);
+  }, [watch("file")]);
+
+  // Mutations with Data
+
   const {
-    mutate: mutateFilterParams,
-    data: dataParamsMutate,
-    isLoading: isLoadingParamsMutate,
-    error: errorParamsMutate,
+    mutate: mutateFilterParamsItem,
+    data: dataParamsMutateItem,
+    // isLoading: isLoadingParamsMutate,
+    // error: errorParamsMutate,
   } = useMutation({
-    mutationFn: (params) => filterParams({ ...params, id_home: hogar_id }),
+    mutationFn: (params) => filterParamsItems({ ...params, id_home: hogar_id }),
     onSuccess: (data) => {
       if (data.success === false) {
         toast.error(data.message);
@@ -149,20 +172,22 @@ export default function () {
     },
   });
 
-  // const {
-  //   data: dataParams,
-  //   isLoading: isLoadingParams,
-  //   error: errorParams,
-  // } = useQuery({
-  //   queryKey: ["filterParams", [hogar_id]],
-  //   queryFn: () => {
-  //     return filterParams({ ...elementParams, id_home: hogar_id });
-  //   },
-  // });
+  const {
+    mutate: mutateFilterParamsList,
+    data: dataParamsMutateList,
+    // isLoading: isLoadingParamsMutate,
+    // error: errorParamsMutate,
+  } = useMutation({
+    mutationFn: (params) => filterParamsList({ ...params, id_home: hogar_id }),
+    onSuccess: (data) => {
+      if (data.success === false) {
+        toast.error(data.message);
+      }
+      queryClient.invalidateQueries();
+    },
+  });
 
-  // if (dataParams) {
-  //   console.log(dataParams);
-  // }
+  // OnSubmits
 
   const onSubmiFindItems = (data) => {
     setElementParams({
@@ -173,59 +198,49 @@ export default function () {
   };
   const onSubmiFindList = (data) => {
     console.log(data);
+    setElementParams({
+      ...elementParams,
+      title: data.titleFindListMobile || data.titleFindList,
+      element: "lista",
+    });
   };
   const onSubmitClearParams = () => {
-    setElementParams({
-      element: "",
-      page: 1,
-      name: "",
-      category: "",
-    });
+    if (elementParams.element == "lista") {
+      mutateFilterParamsList({
+        element: "lista",
+        page: 1,
+        title: "",
+        category: "",
+      });
+    } else {
+      mutateFilterParamsItem({
+        element: "productos",
+        page: 1,
+        name: "",
+        category: "",
+      });
+    }
     reset();
   };
-
   const onSubmitUpdateHogar = (data) => {
     if (data.name.trim().length === 0) {
       setValue("name", dataHogar.name);
     }
     setLoading(true);
-    mutationUpdateHogar.mutate({ ...data, id: hogar_id, file: data.file[0] });
+    mutationUpdateHogar.mutate({
+      ...data,
+      id: hogar_id,
+      file: imageRemoved ? null : data?.file[0],
+      imageDelete: imageRemoved,
+    });
+    setImageRemoved(false);
   };
   const onSubmitDteleteHogar = () => {
     mutationDeleteHogar.mutate(hogar_id);
   };
-
   const onSubmitInviteHogar = (data) => {
     mutationInivteHogar.mutate({ ...data, id: hogar_id });
   };
-
-  const paginationHtml = [];
-
-  {
-    for (let i = 0; i < 5; i++) {
-      if (+elementParams.page + i - 2 > 0) {
-        paginationHtml.push(
-          <button
-            key={i}
-            onClick={() =>
-              setElementParams({
-                ...elementParams,
-                page: +elementParams.page + i - 2,
-              })
-            }
-            disabled={i == 2 || (dataParamsMutate?.length != 10 && i > 2)}
-            className={`bg-[color:var(--color-primary)] text-sm text-white px-3 py-2 rounded  ${
-              i == 2 || (dataParamsMutate?.length != 10 && i > 2)
-                ? "bg-[color:var(--color-primary)]/50"
-                : "bg-[color:var(--color-primary)] cursor-pointer transition-transform duration-200 hover:scale-105"
-            }`}
-          >
-            {+elementParams.page + i - 2}
-          </button>
-        );
-      }
-    }
-  }
 
   return (
     <>
@@ -237,6 +252,12 @@ export default function () {
             } `}
             onClick={() => {
               setActive({ hogar: true, productos: false, listas: false });
+              setElementParams({
+                element: "",
+                page: 1,
+                name: "",
+                category: "",
+              });
             }}
           >
             🏡 Hogar
@@ -250,6 +271,12 @@ export default function () {
             } `}
             onClick={() => {
               setActive({ hogar: false, productos: true, listas: false });
+              setElementParams({
+                element: "productos",
+                page: 1,
+                name: "",
+                category: "",
+              });
             }}
           >
             🧺 Productos
@@ -262,6 +289,12 @@ export default function () {
             } `}
             onClick={() => {
               setActive({ hogar: false, productos: false, listas: true });
+              setElementParams({
+                element: "lista",
+                page: 1,
+                name: "",
+                category: "",
+              });
             }}
           >
             📝 Listas
@@ -272,58 +305,22 @@ export default function () {
             }`}
           >
             {active.productos && (
-              <form
-                onSubmit={handleSubmit(onSubmiFindItems)}
-                className={`flex flex-row gap-3  w-full`}
-              >
-                <InputGeneral
-                  placeholder="Nombre del Pro..."
-                  type="text"
-                  id="nameFindItem"
-                  name="nameFindItem"
-                  {...register("nameFindItem")}
-                />
-                <ButtonGeneral
-                  onClick={() => {
-                    onSubmitClearParams();
-                  }}
-                  className="bg-amber-600 hover:bg-amber-700"
-                  children={<VscClearAll className="text-xl text-white " />}
-                />
-                <ButtonGeneral
-                  type="submit"
-                  children={
-                    <FaMagnifyingGlass className="text-xl text-white" />
-                  }
-                />
-              </form>
+              <InputForm
+                submitPrimary={handleSubmit(onSubmiFindItems)}
+                submitSecondary={onSubmitClearParams}
+                placeholder="Nombre del Pro..."
+                id="nameFindItem"
+                {...register("nameFindItem")}
+              />
             )}
             {active.listas && (
-              <form
-                onSubmit={handleSubmit(onSubmiFindList)}
-                className={`flex flex-row gap-3  w-full`}
-              >
-                <InputGeneral
-                  placeholder="Nombre de la List..."
-                  type="text"
-                  id="nameFindList"
-                  name="nameFindList"
-                  {...register("nameFindList")}
-                />
-                <ButtonGeneral
-                  onClick={() => {
-                    onSubmitClearParams();
-                  }}
-                  className="bg-amber-600 hover:bg-amber-700"
-                  children={<VscClearAll className="text-xl text-white" />}
-                />
-                <ButtonGeneral
-                  type="submit"
-                  children={
-                    <FaMagnifyingGlass className="text-xl text-white" />
-                  }
-                />
-              </form>
+              <InputForm
+                submitPrimary={handleSubmit(onSubmiFindList)}
+                submitSecondary={onSubmitClearParams}
+                placeholder="Nombre de la List..."
+                id="titleFindList"
+                {...register("titleFindList")}
+              />
             )}
           </div>
         </div>
@@ -333,6 +330,7 @@ export default function () {
             Ha habido un error, recarga la página.
           </div>
         )}
+
         {active.hogar && !isOwner && (
           <ButtonGeneral
             children="Salir del hogar"
@@ -351,12 +349,14 @@ export default function () {
                 className="w-40 h-40 bg-cover bg-center rounded-full relative"
                 style={{
                   backgroundImage: `url(${
-                    filePreview
+                    !imageRemoved
                       ? filePreview
-                      : dataHogar?.image
-                      ? `https://res.cloudinary.com/${
-                          import.meta.env.VITE_NAME_CLOUDINARY
-                        }/image/upload/f_auto,q_auto,w_500/${dataHogar.image}`
+                        ? filePreview
+                        : dataHogar?.image
+                        ? `https://res.cloudinary.com/${
+                            import.meta.env.VITE_NAME_CLOUDINARY
+                          }/image/upload/f_auto,q_auto,w_500/${dataHogar.image}`
+                        : "/IMG.jpg"
                       : "/IMG.jpg"
                   })`,
                 }}
@@ -378,6 +378,14 @@ export default function () {
                     "+"
                   )}
                 </label>
+                <button
+                  onClick={() => {
+                    setImageRemoved(true);
+                  }}
+                  type="button"
+                  children={<FaRegTrashAlt />}
+                  className="text-md bg-red-600 text-white px-3 py-3 rounded-full aspect-square w-auto absolute top-[-12px] right-[-12px]"
+                />
               </div>
               <InputGeneral
                 defaultValue={dataHogar?.name}
@@ -449,35 +457,21 @@ export default function () {
             </div>
           </>
         )}
+
         {active.productos && (
           <>
-            <form
-              onSubmit={handleSubmit(onSubmiFindItems)}
+            <InputForm
+              submitPrimary={handleSubmit(onSubmiFindItems)}
+              submitSecondary={onSubmitClearParams}
+              placeholder="Nombre del Pro..."
+              id="nameFindItemMobile"
               className={`flex flex-row gap-3 md:hidden w-full ${
                 active.hogar && "hidden"
               }`}
-            >
-              <InputGeneral
-                placeholder="Nombre del Pro..."
-                type="text"
-                id="nameFindItemMobile"
-                name="nameFindItemMobile"
-                {...register("nameFindItemMobile")}
-              />
-              <ButtonGeneral
-                onClick={() => {
-                  onSubmitClearParams();
-                }}
-                className="bg-amber-600 hover:bg-amber-700"
-                children={<VscClearAll className="text-xl text-white" />}
-              />
-              <ButtonGeneral
-                type="submit"
-                children={<FaMagnifyingGlass className="text-xl text-white" />}
-              />
-            </form>
+              {...register("nameFindItemMobile")}
+            />
             <div className="grid md:grid-cols-2 md:gap-10">
-              {dataParamsMutate?.map((item, i) => {
+              {dataParamsMutateItem?.map((item, i) => {
                 return (
                   <CardItem
                     key={i}
@@ -493,10 +487,10 @@ export default function () {
             </div>
             <div
               className={`bottom-5 right-5 z-40 ${
-                dataParamsMutate?.length < 3 ? "static" : "fixed"
-              } ${dataParamsMutate?.length < 6 ? "md:static" : "md:fixed"} ${
-                dataParamsMutate?.length < 9 ? "lg:static" : "lg:fixed"
-              }`}
+                dataParamsMutateItem?.length < 3 ? "static" : "fixed"
+              } ${
+                dataParamsMutateItem?.length < 6 ? "md:static" : "md:fixed"
+              } ${dataParamsMutateItem?.length < 9 ? "lg:static" : "lg:fixed"}`}
             >
               <ButtonGeneral
                 className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
@@ -523,81 +517,54 @@ export default function () {
                 }
               />
             </div>
-            <div className="flex flex-row justify-center items-center w-full py-5 gap-3">
-              <button
-                onClick={() =>
-                  setElementParams({
-                    ...elementParams,
-                    page: elementParams.page - 1,
-                  })
-                }
-                className={`bg-[color:var(--color-primary)] text-sm text-white px-3 py-2 rounded  ${
-                  elementParams.page <= 1
-                    ? "bg-[color:var(--color-primary)]/50"
-                    : "cursor-pointer transition-transform duration-200 hover:scale-105"
-                }`}
-                disabled={elementParams.page == 1}
-              >
-                Anterior
-              </button>
-              {paginationHtml.map((pagination) => pagination)}
-              <button
-                onClick={() =>
-                  setElementParams({
-                    ...elementParams,
-                    page: +elementParams.page + 1,
-                  })
-                }
-                className={`bg-[color:var(--color-primary)] text-sm text-white px-3 py-2 rounded  ${
-                  dataParamsMutate?.length != 10
-                    ? "bg-[color:var(--color-primary)]/50"
-                    : "cursor-pointer transition-transform duration-200 hover:scale-105"
-                }`}
-                disabled={dataParamsMutate?.length != 10}
-              >
-                Siguiente
-              </button>
-            </div>
+            <Pagination
+              elementParams={elementParams}
+              setElementParams={setElementParams}
+              dataParamsMutate={dataParamsMutateItem}
+            />
           </>
         )}
+
         {active.listas && (
           <>
-            <form
-              onSubmit={handleSubmit(onSubmiFindList)}
+            <InputForm
+              submitPrimary={handleSubmit(onSubmiFindList)}
+              submitSecondary={onSubmitClearParams}
+              placeholder="Nombre de la List..."
+              id="titleFindListMobile"
               className={`flex flex-row gap-3 md:hidden w-full ${
                 active.hogar && "hidden"
               }`}
-            >
-              <InputGeneral
-                placeholder="Nombre de la List..."
-                type="text"
-                id="nameFindListMobile"
-                name="nameFindListMobile"
-                {...register("nameFindListMobile")}
-              />
-              <ButtonGeneral
-                onClick={() => {
-                  onSubmitClearParams();
-                }}
-                className="bg-amber-600 hover:bg-amber-700"
-                children={<VscClearAll className="text-xl text-white" />}
-              />
-              <ButtonGeneral
-                type="submit"
-                children={<FaMagnifyingGlass className="text-xl text-white" />}
-              />
-            </form>
+              {...register("titleFindListMobile")}
+            />
+            <div className="grid md:grid-cols-2 md:gap-10 gap-5">
+              {dataParamsMutateList?.map((item, i) => {
+                return (
+                  <CardList
+                    key={i}
+                    data={item}
+                    // active={active}
+                    // editClick={() => {
+                    //   setModalEditItem(true);
+                    //   setDataEdit(item);
+                    // }}
+                  />
+                );
+              })}
+            </div>
             <div
               className={`bottom-5 right-5 z-40 ${
-                dataHogar?.listas?.length < 5 ? "static" : "fixed"
-              } ${dataHogar?.listas?.length < 9 ? "md:static" : "md:fixed"} ${
-                dataHogar?.listas?.length < 12 ? "lg:static" : "lg:fixed"
+                dataParamsMutateList?.length < 3 ? "static" : "fixed"
+              } ${
+                dataParamsMutateList?.length < 9 ? "md:static" : "md:fixed"
+              } ${
+                dataParamsMutateList?.length < 12 ? "lg:static" : "lg:fixed"
               }`}
             >
               <ButtonGeneral
                 className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
                 onClick={() => {
-                  // navigate("/hogar/crear-hogar");
+                  setModalCreateList(true);
                 }}
                 children={
                   <>
@@ -614,18 +581,33 @@ export default function () {
                         d="M12 6v12M6 12h12"
                       />
                     </svg>
-                    <span>Crear un Lista</span>
+                    <span>Crear una Lista</span>
                   </>
                 }
               />
             </div>
+            <Pagination
+              elementParams={elementParams}
+              setElementParams={setElementParams}
+              dataParamsMutate={dataParamsMutateList}
+            />
           </>
+        )}
+
+        {modalCreateList && (
+          <ModalList
+            onClickClosed={() => {
+              setModalCreateList(false);
+              mutateFilterParamsList(elementParams);
+            }}
+            id_home={hogar_id}
+          />
         )}
         {modalCreateItem && (
           <ModalItem
             onClickClosed={() => {
               setModalCreateItem(false);
-              mutateFilterParams(elementParams);
+              mutateFilterParamsItem(elementParams);
             }}
           />
         )}
@@ -633,7 +615,7 @@ export default function () {
           <ModalItem
             onClickClosed={() => {
               setModalEditItem(false);
-              mutateFilterParams(elementParams);
+              mutateFilterParamsItem(elementParams);
             }}
             data={dataEdit}
           />

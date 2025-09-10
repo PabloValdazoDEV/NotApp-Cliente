@@ -36,7 +36,7 @@ export const updateItem = async (data) => {
   }
 };
 
-export const filterParams = async (params) => {
+export const filterParamsItems = async (params) => {
   try {
     const response = await api.get(`/item/params/${params.id_home}`, {params});
     return response.data;

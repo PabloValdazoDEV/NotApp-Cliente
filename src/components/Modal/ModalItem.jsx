@@ -182,7 +182,7 @@ export default function ModalItem({ onClickClosed, data }) {
                 {...register("description")}
               ></textarea>
               <h4>Seleccione las categorias</h4>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 w-full">
                 <SelectCategory
                   value={categories.first}
                   onChange={(e) => {
@@ -193,12 +193,6 @@ export default function ModalItem({ onClickClosed, data }) {
                   value={categories.second}
                   onChange={(e) => {
                     setCategories({ ...categories, second: e });
-                  }}
-                />
-                <SelectCategory
-                  value={categories.third}
-                  onChange={(e) => {
-                    setCategories({ ...categories, third: e });
                   }}
                 />
               </div>
