@@ -1,4 +1,4 @@
-export default function ButtonGeneral({
+export default function ButtonSecondary({
   children = "Click aquí",
   onClick,
   type = "button",
@@ -10,7 +10,7 @@ export default function ButtonGeneral({
       disabled={loading ? true : false}
       type={type}
       onClick={onClick}
-      className={`px-5 h-10 text-sm font-bold text-white bg-(--color-primary) hover:bg-(--color-primary)-hover active:bg-blue-700 rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-(--color-primary) focus:ring-offset-2 hover:scale-105 ${className}`.trim()}
+      className={`px-5 h-10 text-sm font-medium text-gray-600  bg-transparent hover:bg-gray-100   rounded-lg transition-all  focus:outline-none focus:ring-2 focus:ring-gray-200  hover:scale-105  border border-[#dbdfe6] ${className}`.trim()}
     >
       {loading ? (
         <div className="flex items-center gap-2 h-6">

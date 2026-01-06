@@ -19,7 +19,7 @@ export default function Pagination({
                 page: +elementParams.page + i - 2,
               })
             }
-            disabled={i == 2 || (dataParamsMutate?.length != 10 && i > 2)}
+            // disabled={i == 2 || (dataParamsMutate?.length != 10 && i > 2)}
             className={`bg-[color:var(--color-primary)] text-sm text-white px-3 py-2 rounded  ${
               i == 2 || (dataParamsMutate?.length != 10 && i > 2)
                 ? "bg-[color:var(--color-primary)]/50"

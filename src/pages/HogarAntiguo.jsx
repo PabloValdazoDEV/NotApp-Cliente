@@ -1,27 +1,30 @@
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
-import { FaUserGroup } from "react-icons/fa6";
+import { FaMagnifyingGlass } from "react-icons/fa6";
+import { FiFilter, FiDelete } from "react-icons/fi";
+import { VscClearAll } from "react-icons/vsc";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getHome, deleteHome } from "../api/home";
-import { IoArrowBack } from "react-icons/io5";
-import { postInvite } from "../api/member";
+import { getHome, updateHome, deleteHome } from "../api/home";
+import { IoSyncOutline } from "react-icons/io5";
+import { FaRegTrashAlt } from "react-icons/fa";
+import { deleteMember, postInvite, updateMember } from "../api/member";
 import { useAtomValue } from "jotai";
 import { user } from "../store/userAtom";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
+import InputGeneral from "../components/Input/InputGeneral";
+import useFilePreview from "../hooks/useFilePreview";
 import ModalGeneral from "../components/Modal/ModalGeneral";
 import CardItem from "../components/Cards/CardItem";
 import ModalItem from "../components/Modal/ModalItem";
 import toast from "react-hot-toast";
+import ModalMember from "../components/Modal/ModalMember";
 import { filterParamsItems } from "../api/item";
 import { filterParamsList } from "../api/list";
 import CardList from "../components/Cards/CardList";
 import ModalList from "../components/Modal/ModalList";
 import InputForm from "../components/Input/InputFind";
 import Pagination from "../components/Pagination/Pagination";
-import ButtonSecondary from "../components/Buttons/ButtonSecondary";
-import ModalEditHogar from "../components/Modal/ModalEditHogar";
-import HogarMembers from "./HogarMembers";
 
 export default function () {
   const navigate = useNavigate();
@@ -41,11 +44,11 @@ export default function () {
   const [modalCreateItem, setModalCreateItem] = useState(false);
   const [modalEditItem, setModalEditItem] = useState(false);
   const [modalMember, setModalMember] = useState(false);
+  const [modalEditMember, setModalEditMember] = useState(null);
   const [modalCreateList, setModalCreateList] = useState(null);
-  const [modalEditHogar, setModalEditHogar] = useState(false);
   const [dataEdit, setDataEdit] = useState({});
   const [isOwner, setIsOwner] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [imageRemoved, setImageRemoved] = useState(false);
   const [active, setActive] = useState({
     hogar: false,
@@ -54,6 +57,9 @@ export default function () {
   });
 
   const { register, handleSubmit, setValue, watch, reset } = useForm();
+
+  const [file] = watch(["file"]);
+  const [filePreview] = useFilePreview(file);
 
   const {
     data: dataHogar,
@@ -67,6 +73,15 @@ export default function () {
   });
 
   // Mutations
+
+  const mutationUpdateHogar = useMutation({
+    mutationFn: updateHome,
+    onSuccess: () => {
+      setLoading(false);
+      toast.success("Hogar actualizado correctamente!");
+      queryClient.invalidateQueries();
+    },
+  });
   const mutationDeleteHogar = useMutation({
     mutationFn: deleteHome,
     onSuccess: () => {
@@ -77,7 +92,6 @@ export default function () {
       navigate("/");
     },
   });
-
   const mutationInivteHogar = useMutation({
     mutationFn: postInvite,
     onSuccess: (data) => {
@@ -89,30 +103,28 @@ export default function () {
       queryClient.invalidateQueries();
     },
   });
-
-  // const mutationDeleteMember = useMutation({
-  //   mutationFn: deleteMember,
-  //   onSuccess: (data) => {
-  //     if (data.success === false) {
-  //       toast.error(data.message);
-  //     } else {
-  //       toast.success(data.message);
-  //     }
-  //     queryClient.invalidateQueries();
-  //   },
-  // });
-
-  // const mutationUpdateMember = useMutation({
-  //   mutationFn: updateMember,
-  //   onSuccess: (data) => {
-  //     if (data.success === false) {
-  //       toast.error(data.message);
-  //     } else {
-  //       toast.success(data.message);
-  //     }
-  //     queryClient.invalidateQueries();
-  //   },
-  // });
+  const mutationDeleteMember = useMutation({
+    mutationFn: deleteMember,
+    onSuccess: (data) => {
+      if (data.success === false) {
+        toast.error(data.message);
+      } else {
+        toast.success(data.message);
+      }
+      queryClient.invalidateQueries();
+    },
+  });
+  const mutationUpdateMember = useMutation({
+    mutationFn: updateMember,
+    onSuccess: (data) => {
+      if (data.success === false) {
+        toast.error(data.message);
+      } else {
+        toast.success(data.message);
+      }
+      queryClient.invalidateQueries();
+    },
+  });
 
   // UseEfects
 
@@ -121,8 +133,7 @@ export default function () {
       const isOwner = dataHogar.members.filter(
         (member) => member.user_id === userContext.id
       );
-      setIsOwner(isOwner[0].role === "OWNER");
-      setIsAdmin(isOwner[0].role === "ADMIN");
+      setIsOwner(isOwner[0].role === "OWNER" || isOwner[0].role === "ADMIN");
     }
   }, [dataHogar, userContext]);
 
@@ -223,26 +234,70 @@ export default function () {
     });
     setImageRemoved(false);
   };
-
   const onSubmitDteleteHogar = () => {
     mutationDeleteHogar.mutate(hogar_id);
   };
-
   const onSubmitInviteHogar = (data) => {
     mutationInivteHogar.mutate({ ...data, id: hogar_id });
   };
 
-  if (isLoading) {
-    return <p>Cargando...</p>;
-  }
-  if (error) {
-    navigate(-1);
-  }
-
   return (
     <>
-      <main className="relative h-full flex flex-col justify-center items-center gap-5 ">
-        {/* <div className="flex flex-row justify-center gap-3 items-center">
+      <main className="relative h-full flex flex-col justify-center items-center gap-5">
+        <div className="flex flex-row justify-center gap-3 items-center">
+          <p
+            className={`hover:scale-105 cursor-pointer ${
+              active.hogar && "border-b-2 border-[color:var(--color-primary)] "
+            } `}
+            onClick={() => {
+              setActive({ hogar: true, productos: false, listas: false });
+              setElementParams({
+                element: "",
+                page: 1,
+                name: "",
+                category: "",
+              });
+            }}
+          >
+            🏡 Hogar
+          </p>
+          <span className="border-r-2 h-5 inline-block"></span>
+
+          <p
+            className={`hover:scale-105 cursor-pointer ${
+              active.productos &&
+              "border-b-2 border-[color:var(--color-primary)] "
+            } `}
+            onClick={() => {
+              setActive({ hogar: false, productos: true, listas: false });
+              setElementParams({
+                element: "productos",
+                page: 1,
+                name: "",
+                category: "",
+              });
+            }}
+          >
+            🧺 Productos
+          </p>
+          <span className="border-r-2 h-5 inline-block"></span>
+
+          <p
+            className={`hover:scale-105 cursor-pointer ${
+              active.listas && "border-b-2 border-[color:var(--color-primary)] "
+            } `}
+            onClick={() => {
+              setActive({ hogar: false, productos: false, listas: true });
+              setElementParams({
+                element: "lista",
+                page: 1,
+                name: "",
+                category: "",
+              });
+            }}
+          >
+            📝 Listas
+          </p>
           <div
             className={` flex-row gap-3 hidden md:flex ml-10 ${
               active.hogar && "md:hidden"
@@ -267,188 +322,139 @@ export default function () {
               />
             )}
           </div>
-        </div> */}
-
-        {/* {console.log(dataHogar)} */}
-        <div className="bg-white  rounded-xl shadow-sm border border-[#e5e7eb] overflow-hidden w-full relative">
-          <Link
-            onClick={() => {
-              navigate(-1);
-            }}
-            className=" no-underline text-white inline-flex mb-4 hover:scale-105 absolute top-5 left-5"
-          >
-            <IoArrowBack className="text-2xl mr-1 " /> Atras
-          </Link>
-          <img
-            src={`https://lh3.googleusercontent.com/aida-public/AB6AXuDKajS7YlhPUhbXXYWyGWxk6uhNY-WyRJ5kwR2vqfgvsAURnue1NXQcLGbtiU_EWMOhI43KfLzse-yuz6TwfT0Kx1Ihk7ga5VqtL36LJzBNf8POmplgpkG66Gcsw5vnLFUAUkn_qMoSJo2pk2KR1t1Jd9yLjeTGmdhGApLG3OrAqQvdeFqhXEauf2HazCalPkH71qBTNbxpkAvRBqWaSg2BimsmA1sVfclQ_gf8G7-6T040ntj2A5BIV0Huef0nABWcqLiaWkH_hp6Y`}
-            alt="Preview imagen perfil"
-            className="w-full h-28 object-cover"
-          />
-          <div className="px-6 pb-6 relative">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end -mt-10 mb-4">
-              {dataHogar?.image && (
-                <img
-                  src={`https://res.cloudinary.com/${
-                    import.meta.env.VITE_NAME_CLOUDINARY
-                  }/image/upload/f_auto,q_auto,w_500/${dataHogar?.image}`}
-                  alt="Preview imagen perfil"
-                  className="shadow-md h-24 w-24 sm:h-32 sm:w-32 object-cover rounded-xl bg-white border-4 border-white"
-                />
-              )}
-
-              <div
-                className={`flex flex-col flex-1 min-w-0 mb-1 ${
-                  !dataHogar.image && "mt-12"
-                }`}
-              >
-                <h1 className="text-[#111318] text-2xl sm:text-3xl font-bold leading-tight truncate">
-                  {dataHogar?.name}
-                </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-[#616f89] text-sm font-medium flex flex-row gap-2 items-center">
-                    <FaUserGroup /> {dataHogar?.members.length} miembros
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                {isOwner && (
-                  <>
-                    <ButtonSecondary
-                      className="rounded-lg "
-                      children="Editar hogar"
-                      onClick={() => {
-                        setModalEditHogar(true);
-                      }}
-                    />
-                    <ButtonSecondary
-                      className="text-red-500"
-                      children="Eliminar hogar"
-                      onClick={() => {
-                        setModalDeleteHogar(true);
-                      }}
-                    />
-                  </>
-                )}
-                {isAdmin && (
-                  <>
-                    <ButtonSecondary
-                      // className="rounded-lg border border-[#dbdfe6]"
-                      children="Editar hogar"
-                      onClick={() => {
-                        setModalEditHogar(true);
-                      }}
-                    />
-                    <ButtonSecondary
-                      className="text-red-500"
-                      children="Salir del hogar"
-                      onClick={() => {
-                        setModalMember(true);
-                      }}
-                    />
-                  </>
-                )}
-                {!isOwner && !isAdmin && (
-                  <ButtonSecondary
-                    className="text-red-500 "
-                    children="Salir del hogar"
-                    onClick={() => {
-                      setModalMember(true);
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-            <div className="flex justify-around md:justify-start border-b border-[#dbdfe6] mt-6 overflow-x-auto no-scrollbar">
-              {(isOwner || isAdmin) && (
-                <p
-                  className={`flex items-center justify-center px-3 py-3 border-b-2 transition-colors cursor-pointer ${
-                    active.hogar
-                      ? "border-[color:var(--color-primary)]  text-(--color-primary) text-sm font-bold whitespace-nowrap"
-                      : "border-transparent text-[#616f89]  text-sm font-semibold whitespace-nowrap hover:text-[#111318]"
-                  }`}
-                  onClick={() => {
-                    setActive({
-                      hogar: true,
-                      productos: false,
-                      listas: false,
-                    });
-                    setElementParams({
-                      element: "",
-                      page: 1,
-                      name: "",
-                      category: "",
-                    });
-                  }}
-                >
-                  Miembros
-                </p>
-              )}
-              <p
-                className={`flex items-center justify-center px-3 py-3 border-b-2 transition-colors cursor-pointer  ${
-                  active.listas
-                    ? "border-[color:var(--color-primary)]  text-(--color-primary) text-sm font-bold whitespace-nowrap"
-                    : "border-transparent text-[#616f89]  text-sm font-semibold whitespace-nowrap hover:text-[#111318]"
-                }`}
-                onClick={() => {
-                  setActive({
-                    hogar: false,
-                    productos: false,
-                    listas: true,
-                  });
-                  setElementParams({
-                    element: "lista",
-                    page: 1,
-                    name: "",
-                    category: "",
-                  });
-                }}
-              >
-                Lista
-              </p>
-              <p
-                className={`flex items-center justify-center px-3 py-3 border-b-2 transition-colors cursor-pointer  ${
-                  active.productos
-                    ? "border-[color:var(--color-primary)]  text-(--color-primary) text-sm font-bold whitespace-nowrap"
-                    : "border-transparent text-[#616f89]  text-sm font-semibold whitespace-nowrap hover:text-[#111318]"
-                }`}
-                onClick={() => {
-                  setActive({
-                    hogar: false,
-                    productos: true,
-                    listas: false,
-                  });
-                  setElementParams({
-                    element: "productos",
-                    page: 1,
-                    name: "",
-                    category: "",
-                  });
-                }}
-              >
-                Productos
-              </p>
-            </div>
-          </div>
         </div>
-
-        {/* // No Eliminar
-        <div className="bg-white  rounded-xl shadow-sm border border-[#e5e7eb] overflow-hidden w-full relative">
-          {" "}
-          <div className="px-6 py-6 flex flex-row justify-center items-center">
-            <InputForm />{" "}
-          </div>
-        </div> */}
-
         {isLoading && <p className="col-span-4 text-center">Cargando...</p>}
         {error && (
           <div className="col-span-4 text-center">
             Ha habido un error, recarga la página.
           </div>
         )}
-        {active.hogar && (isOwner || isAdmin) && (
-          <HogarMembers
-            dataHogar={dataHogar}
+
+        {active.hogar && !isOwner && (
+          <ButtonGeneral
+            children="Salir del hogar"
+            onClick={() => {
+              setModalMember(true);
+            }}
           />
+        )}
+        {active.hogar && isOwner && (
+          <>
+            <form
+              onSubmit={handleSubmit(onSubmitUpdateHogar)}
+              className="flex flex-col w-full md:w-80 justify-center items-center gap-5 mt-6"
+            >
+              <div
+                className="w-40 h-40 bg-cover bg-center rounded-full relative"
+                style={{
+                  backgroundImage: `url(${
+                    !imageRemoved
+                      ? filePreview
+                        ? filePreview
+                        : dataHogar?.image
+                        ? `https://res.cloudinary.com/${
+                            import.meta.env.VITE_NAME_CLOUDINARY
+                          }/image/upload/f_auto,q_auto,w_500/${dataHogar.image}`
+                        : "/IMG.jpg"
+                      : "/IMG.jpg"
+                  })`,
+                }}
+              >
+                <input
+                  type="file"
+                  id="file"
+                  className="w-full h-full rounded-full hidden"
+                  name="file"
+                  {...register("file")}
+                />
+                <label
+                  htmlFor="file"
+                  className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-full flex justify-center items-center text-6xl"
+                >
+                  {filePreview || dataHogar?.image ? (
+                    <IoSyncOutline className="w-10" />
+                  ) : (
+                    "+"
+                  )}
+                </label>
+                <button
+                  onClick={() => {
+                    setImageRemoved(true);
+                  }}
+                  type="button"
+                  children={<FaRegTrashAlt />}
+                  className="text-md bg-red-600 text-white px-3 py-3 rounded-full aspect-square w-auto absolute top-[-12px] right-[-12px]"
+                />
+              </div>
+              <InputGeneral
+                defaultValue={dataHogar?.name}
+                type="text"
+                id="name"
+                name="name"
+                {...register("name")}
+              />
+              <div className="flex flex-row justify-between w-full">
+                <ButtonGeneral
+                  onClick={() => {
+                    setModalDeleteHogar(true);
+                  }}
+                  className="top-0 right-0 bg-red-500 hover:bg-red-600"
+                  children={<FaRegTrashAlt className="text-2xl" />}
+                />
+                <ButtonGeneral
+                  loading={loading}
+                  type="submit"
+                  children="Guardar los cambios"
+                  className="text-white"
+                />
+              </div>
+            </form>
+            <h2 className="border-t-1 text-center pt-5 mt-2">
+              Invitar al hogar
+            </h2>
+            <form
+              onSubmit={handleSubmit(onSubmitInviteHogar)}
+              className="flex flex-row w-full md:w-80 justify-center items-center gap-5"
+            >
+              <InputGeneral
+                type="email"
+                id="email"
+                name="email"
+                {...register("email")}
+              />
+              <ButtonGeneral
+                type="submit"
+                children="Invitar"
+                className="text-white"
+              />
+            </form>
+            <div className="w-full md:w-80 space-y-5">
+              {/* {console.log(dataHogar.members)} */}
+              {dataHogar.members.map((member, i) => {
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-row items-center justify-between w-full"
+                  >
+                    <p>
+                      {member.user.name}
+                      {member.role === "OWNER" && " (Dueños del hogar)"}
+                      {member.user_id === userContext.id && " (Tú)"}
+                    </p>{" "}
+                    {member.user_id === userContext.id ||
+                      (member.role !== "OWNER" && (
+                        <ButtonGeneral
+                          children="Editar"
+                          onClick={() => {
+                            setModalEditMember(member);
+                          }}
+                        />
+                      ))}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
 
         {active.productos && (
@@ -627,6 +633,30 @@ export default function () {
             }}
           />
         )}
+        {modalEditMember && (
+          <ModalMember
+            onClickClosed={() => {
+              setModalEditMember(null);
+            }}
+            data={modalEditMember}
+            onClickX={() => {
+              setModalEditMember(null);
+            }}
+            btnDelete={() => {
+              console.log(modalEditMember)
+              // mutationDeleteMember.mutate(modalEditMember.id);
+              // setModalEditMember(null);
+            }}
+            btnRol={() => {
+              mutationUpdateMember.mutate({
+                id: modalEditMember.id,
+                role: modalEditMember.role !== "ADMIN" ? "ADMIN" : "MEMBER",
+              });
+
+              setModalEditMember(null);
+            }}
+          />
+        )}
         {modalMember && (
           <ModalGeneral
             titulo={`Salir de ${dataHogar?.name}`}
@@ -644,16 +674,6 @@ export default function () {
                 navigate("/home");
               }
               mutationDeleteMember.mutate(myMember[0].id);
-            }}
-          />
-        )}
-        {modalEditHogar && (
-          <ModalEditHogar
-            name={dataHogar?.name}
-            image={dataHogar?.image}
-            hogar_id={dataHogar?.id}
-            clickClose={() => {
-              setModalEditHogar(false);
             }}
           />
         )}

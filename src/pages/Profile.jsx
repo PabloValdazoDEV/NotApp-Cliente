@@ -1,24 +1,20 @@
-import { useAtomValue, useSetAtom } from "jotai";
-import { fetchUser, user } from "../store/userAtom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getProfile, updateProfile } from "../api/profile";
+import { useAtomValue } from "jotai";
+import { user } from "../store/userAtom";
+import { useQuery } from "@tanstack/react-query";
+import { getProfile } from "../api/profile";
 import { useNavigate } from "react-router";
-import { useForm } from "react-hook-form";
-import useFilePreview from "../hooks/useFilePreview";
-import InputGeneral from "../components/Input/InputGeneral";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
 import { useEffect, useState } from "react";
 import CardInvitation from "../components/Cards/CardInvitation";
-import toast from "react-hot-toast";
 import { useLocation } from "react-router";
+import ModalEditProfile from "../components/Modal/ModalEditProfile";
 
 export default function Profile() {
-  const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
   const userContext = useAtomValue(user);
   const [loadingAnimation, setLoadingAnimation] = useState(false);
-  const fetchUserContext = useSetAtom(fetchUser);
+  const [modalEdit, setModalEdit] = useState(false);
 
   const { data, error, isLoading } = useQuery({
     queryKey: ["getProfile", userContext.id],
@@ -38,47 +34,6 @@ export default function Profile() {
     }
   }, [location]);
 
-  const {
-    handleSubmit,
-    register,
-    watch,
-    formState: { errors },
-    setValue,
-  } = useForm();
-
-  const mutationProfile = useMutation({
-    mutationFn: updateProfile,
-    onSuccess: (data) => {
-      toast.success("Perfil actualizado!");
-      setLoadingAnimation(false);
-      console.log(data);
-      queryClient.invalidateQueries();
-      fetchUserContext();
-    },
-    onError:()=>{
-      toast.error("Error al actualizar")
-    }
-  });
-
-  const onSubmit = (data) => {
-    if (data.name.trim().length === 0) {
-      setValue("name", data?.user.name);
-    }
-    setLoadingAnimation(true);
-    mutationProfile.mutate({
-      ...data,
-      user_id: userContext.id,
-      file: data.file[0],
-    });
-  };
-
-  const [file] = watch(["file"]);
-  const [filePreview] = useFilePreview(file);
-
-  useEffect(() => {
-    setValue("name", data?.user.name);
-    setValue("email", data?.user.email);
-  }, [data?.user]);
 
   if (isLoading) {
     return <p>Cargando...</p>;
@@ -89,79 +44,53 @@ export default function Profile() {
 
   return (
     <>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col w-full justify-center items-center gap-8"
-      >
-        <div
-          className="w-40 h-40 bg-cover bg-center rounded-full relative"
-          style={{
-            backgroundImage: `url(${
-              filePreview
-                ? filePreview
-                : data?.user.image
-                ? `https://res.cloudinary.com/${
-                    import.meta.env.VITE_NAME_CLOUDINARY
-                  }/image/upload/f_auto,q_auto,w_500/${data.user.image}`
-                : "/Avatar.png"
-            })`,
-          }}
-        >
-          <input
-            type="file"
-            id="file"
-            className="w-full h-full rounded-full hidden"
-            name="file"
-            {...register("file")}
+      <div className="flex flex-col w-full justify-center items-center gap-5">
+        <div className="mt-2 w-40 h-40 mx-auto rounded-full overflow-hidden">
+          <img
+            src={`${
+                userContext.image
+                  ? `https://res.cloudinary.com/${
+                      import.meta.env.VITE_NAME_CLOUDINARY
+                    }/image/upload/f_auto,q_auto,w_500/${data.user.image}`
+                  : "/Avatar.png"
+              }`}
+            alt="Preview imagen perfil"
+            className="w-full h-full object-cover"
           />
-          <label
-            htmlFor="file"
-            className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-full flex justify-center items-center text-6xl"
-          >
-            +
-          </label>
         </div>
-        <div className="relative w-full">
-          <InputGeneral
-            placeholder="Nombre del hogar..."
-            className="md:w-80"
-            type="text"
-            id="name"
-            name="name"
-            {...register("name", { required: true })}
-          />
-          {errors.name && (
-            <p className="text-red-500 text-xs absolute top-[-20px]">
-              El nombre es obligatorio
+        <div className="md:w-124 grid md:grid-cols-2 gap-5">
+          <h2 className="col-span-1 md:col-span-2 text-center">
+            Datos Personales
+          </h2>
+          <div className="w-full flex flex-col gap-1 col-span-1">
+            <p>Nombre completo: </p>
+            <p className="h-12 px-4 flex items-center rounded-lg border border-gray-200 bg-gray-50 text-gray-900">
+              {data?.user.name}
             </p>
-          )}
-        </div>
-        <div className="relative w-full">
-          <InputGeneral
-            placeholder="Nombre del hogar..."
-            className="md:w-80"
-            type="email"
-            id="email"
-            name="email"
-            {...register("email", { required: true })}
-          />
-          {errors.email && (
-            <p className="text-red-500 text-xs absolute top-[-20px]">
-              El email es obligatorio
+          </div>
+          <div className="w-full flex flex-col gap-1 col-span-1">
+            <p>Correo electronico: </p>
+            <p className="h-12 px-4 flex items-center rounded-lg border border-gray-200 bg-gray-50 text-gray-900">
+              {data?.user.email}
             </p>
-          )}
+          </div>
         </div>
         <ButtonGeneral
           loading={loadingAnimation}
-          type="submit"
-          children={"Actualizar perfil"}
+          type="button"
+          children={"Editar perfil"}
           className="text-white"
+          onClick={() => {
+            setModalEdit(true);
+          }}
         />
-      </form>
+      </div>
       <hr id="invitaciones" className="border-1 w-2/3 my-7 mx-auto" />
-      <h2 className="text-center mb-3" id="invitations">Invitaciones</h2>
+      <h2 className="text-center mb-3" id="invitations">
+        Invitaciones
+      </h2>
+
       <div className="flex flex-col gap-5">
-        {/* {console.log(data.user?.invitations)} */}
         {data.user?.invitations.length === 0 ? (
           <p className="text-center">No tienes invitaciones</p>
         ) : (
@@ -171,6 +100,13 @@ export default function Profile() {
         )}
         {}
       </div>
+      {modalEdit && (
+        <ModalEditProfile
+          clickClose={() => {
+            setModalEdit(false);
+          }}
+        />
+      )}
     </>
   );
 }

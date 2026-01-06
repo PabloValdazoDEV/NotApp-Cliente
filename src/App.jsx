@@ -1,6 +1,6 @@
 import { fetchUser, user } from "./store/userAtom";
 
-import { Navigate, Routes, Route } from "react-router";
+import { Navigate, Routes, Route, Router } from "react-router";
 import { useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { useUserAuth } from "./hooks/useUserAuth";
@@ -12,11 +12,15 @@ import Home from "./pages/Home";
 import Layout from "./components/Layout";
 import ResetPassword from "./pages/ResetPassword";
 import Hogar from "./pages/Hogar";
+import HogarV1 from "./pages/HogarAntiguo";
 
 import "./global.css";
 import CreateHogar from "./pages/CreateHogar";
 import RegisterSpecial from "./pages/RegisterSpecial";
 import Profile from "./pages/Profile";
+import ListDo from "./pages/ListDo";
+import ListAdd from "./pages/ListAdd";
+
 
 const PublicRoute = ({ element }) => {
   const { isAuth, loading } = useUserAuth();
@@ -58,10 +62,11 @@ function App() {
         />
         <Route path="/" element={<PrivateRoute element={<Layout />} />}>
           <Route index element={<Home />} />
-          <Route path="hogar">
-            <Route path="crear-hogar" element={<CreateHogar />} />
-            <Route path=":hogar_id" element={<Hogar />} />
-          </Route>
+          <Route path="crear-hogar" element={<CreateHogar />} />
+          <Route path="hogar/:hogar_id" element={<Hogar />} />
+          <Route path="hogar2/:hogar_id" element={<HogarV1 />} />
+          <Route path="hogar/:hogar_id/:list_id/add" element={<ListAdd />} />
+          <Route path="hogar/:hogar_id/:list_id/do" element={<ListDo />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

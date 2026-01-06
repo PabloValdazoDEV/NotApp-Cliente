@@ -19,7 +19,7 @@ export default function InputGeneral({
       placeholder={placeholder}
       id={id}
       {...rest}
-      className={`w-full bg-gray-100 border border-[color:var(--color-text)] rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-neutral-700  text-neutral-700 ${className}`}
+      className={`w-full h-12 px-4 rounded-lg border border-gray-200  bg-white  text-gray-900 placeholder:text-gray-400  focus:border-(--color-primary) focus:ring-1 focus:ring-(--color-primary) transition-colors outline-none text-base ${className}`}
     />
   );
 }

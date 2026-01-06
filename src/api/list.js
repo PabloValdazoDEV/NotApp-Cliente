@@ -26,3 +26,21 @@ export const filterParamsList = async (params) => {
     return { success: false, message: error.response.data.message };
   }
 };
+
+export const getList = async (params) => {
+  try {
+    const response = await api.get(`/list/${params.hogar_id}/${params.list_id}`);
+    return response.data
+  } catch (error) {
+     return { success: false, message: error.response.data.message };
+  }
+}
+
+export const getAllItemList = async (params) => {
+  try {
+    const response = await api.get(`/list/params/items/${params.id_list}`, {params});
+    return response.data;
+  } catch (error) {
+    return { success: false, message: error.response.data.message };
+  }
+};

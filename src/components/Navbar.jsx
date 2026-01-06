@@ -40,13 +40,19 @@ export default function () {
               to="/home"
               className="text-[color:var(--color-text)] hover:text-[color:var(--color-primary)] no-underline"
             >
-              Hogares
+              Mis Hogares
+            </Link>
+            <Link
+              to="/profile"
+              className="text-[color:var(--color-text)] hover:text-[color:var(--color-primary)] no-underline"
+            >
+              Mi Perfil
             </Link>
             <Link
               to="/profile#invitations"
               className="text-[color:var(--color-text)] hover:text-[color:var(--color-primary)] no-underline relative"
             >
-             Invitaciones
+             Mis Invitaciones
                 {userContext?.invitations.length !== 0 && (
                   <span className=" top-[-5px] right-[-20px] absolute bg-[color:var(--color-primary)] rounded-full aspect-square w-5 h-5 text-xs flex flex-col justify-center items-center text-white">
                     {userContext?.invitations.length}
@@ -104,19 +110,29 @@ export default function () {
         {isOpen && (
           <div className="fixed inset-0 bg-[color:var(--color-primary)]/10 backdrop-blur-sm z-40 flex items-center justify-center px-4">
             <div className="w-full max-w-xs bg-[color:var(--color-background-object)] rounded-lg shadow-lg p-6 flex flex-col gap-5 items-center relative">
-              <Link
+               <Link
                 to="/home"
+                onClick={() => setIsOpen(false)}
                 className="block text-[color:var(--color-text)] text-lg hover:text-[color:var(--color-primary)] no-underline"
               >
-                Hogares
+                Mis Hogares
               </Link>
               <hr className="border-1 w-1/3" />
+              <Link
+                to="/profile"
+                onClick={() => setIsOpen(false)}
+                className="block text-[color:var(--color-text)] text-lg hover:text-[color:var(--color-primary)] no-underline"
+              >
+                Mi Perfil
+              </Link>
+              <hr className="border-1 w-1/3" />
+              
               <Link
                 to="/profile#invitations"
                 onClick={() => setIsOpen(false)}
                 className="block text-[color:var(--color-text)] text-lg hover:text-[color:var(--color-primary)] no-underline relative"
               >
-                Invitaciones
+                Mis Invitaciones
                 {userContext?.invitations.length !== 0 && (
                   <span className="top-[-5px] right-[-20px] absolute bg-[color:var(--color-primary)] rounded-full aspect-square w-5 h-5 text-xs flex flex-col justify-center items-center text-white">
                     {userContext?.invitations.length}

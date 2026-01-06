@@ -14,7 +14,7 @@ export default function InputForm({
   return (
     <form
       onSubmit={submitPrimary}
-      className={`${className ? className : "flex flex-row gap-3  w-full"}`}
+      className={`${className ? className : "flex flex-row gap-3  w-full items-center"}`}
     >
       <InputGeneral
         placeholder={placeholder}
@@ -25,11 +25,12 @@ export default function InputForm({
       />
       <ButtonGeneral
         onClick={submitSecondary}
-        className="bg-amber-600 hover:bg-amber-700"
+        className="bg-amber-600 hover:bg-amber-700 h-12"
         children={<VscClearAll className="text-xl text-white" />}
       />
       <ButtonGeneral
         type="submit"
+        className="h-12"
         children={<FaMagnifyingGlass className="text-xl text-white" />}
       />
     </form>
