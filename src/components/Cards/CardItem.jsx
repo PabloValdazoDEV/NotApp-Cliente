@@ -2,6 +2,7 @@ import PillGenerical from "../Pill/PillGenerical";
 import { BiCartDownload } from "react-icons/bi";
 import { MdOutlineEdit } from "react-icons/md";
 import ModalItem from "../Modal/ModalItem";
+import { SUPERMARKET_LABELS } from "../../constants/supermarkets";
 
 export default function CardItem({ data, active, editClick }) {
   //   console.log(data);
@@ -63,6 +64,11 @@ export default function CardItem({ data, active, editClick }) {
         >
           {data.price && (
             <PillGenerical category={`${data.price?.replace(".", ",")}€`} />
+          )}
+          {data.supermarket && data.supermarket !== "CUALQUIERA" && (
+            <PillGenerical
+              category={SUPERMARKET_LABELS[data.supermarket] || data.supermarket}
+            />
           )}
           {data.categories.map((category, index) => {
             return <PillGenerical key={index} category={category} />;

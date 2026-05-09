@@ -13,7 +13,6 @@ export default function Profile() {
   const location = useLocation();
   const navigate = useNavigate();
   const userContext = useAtomValue(user);
-  const [loadingAnimation, setLoadingAnimation] = useState(false);
   const [modalEdit, setModalEdit] = useState(false);
 
   const { data, error, isLoading } = useQuery({
@@ -76,7 +75,6 @@ export default function Profile() {
           </div>
         </div>
         <ButtonGeneral
-          loading={loadingAnimation}
           type="button"
           children={"Editar perfil"}
           className="text-white"

@@ -15,8 +15,6 @@ export default function ModalEditMember({ data, clickClose }) {
   const {
     handleSubmit,
     register,
-    watch,
-    formState: { errors },
     setValue,
   } = useForm();
 
@@ -48,8 +46,6 @@ export default function ModalEditMember({ data, clickClose }) {
   });
 
   const onSubmit = (dataForm) => {
-    console.log(dataForm);
-    console.log(data);
     setLoadingAnimation(true);
     mutationUpdateMember.mutate({
       id: data.id,
@@ -59,7 +55,7 @@ export default function ModalEditMember({ data, clickClose }) {
 
   useEffect(() => {
     setValue("role", data.role);
-  }, [data]);
+  }, [data, setValue]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40  backdrop-blur-sm transition-opacity p-4">
@@ -108,7 +104,7 @@ export default function ModalEditMember({ data, clickClose }) {
               children="Eliminar miembro"
               className="text-red-500 w-42"
               onClick={() => {
-                console.log(data);
+                setLoadingAnimation(true);
                 mutationDeleteMember.mutate(data.id);
               }}
             />

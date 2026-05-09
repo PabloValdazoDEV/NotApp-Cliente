@@ -10,7 +10,7 @@ import { useNavigate } from "react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
-export default function () {
+export default function CreateHogar() {
   const userData = useAtomValue(user);
   const navegate = useNavigate();
   const [loadingAnimation, setLoadingAnimation] = useState(false);
@@ -18,7 +18,6 @@ export default function () {
   const {
     handleSubmit,
     register,
-    reset,
     formState: { errors },
     watch,
   } = useForm();

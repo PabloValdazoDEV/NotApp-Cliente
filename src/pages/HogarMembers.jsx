@@ -11,7 +11,7 @@ import CardMember from "../components/Cards/CardMember";
 import ButtonSecondary from "../components/Buttons/ButtonSecondary";
 import InputGeneral from "../components/Input/InputGeneral";
 
-export default function ({dataHogar}) {
+export default function HogarMembers({dataHogar}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { hogar_id } = useParams();

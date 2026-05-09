@@ -14,7 +14,6 @@ export default function ModalList({ onClickClosed, id_home }) {
   const {
     handleSubmit,
     register,
-    formState: { errors },
   } = useForm();
 
 

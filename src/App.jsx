@@ -1,6 +1,6 @@
-import { fetchUser, user } from "./store/userAtom";
+import { fetchUser } from "./store/userAtom";
 
-import { Navigate, Routes, Route, Router } from "react-router";
+import { Navigate, Routes, Route } from "react-router";
 import { useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { useUserAuth } from "./hooks/useUserAuth";
@@ -40,7 +40,7 @@ function App() {
 
   useEffect(() => {
     fetchUserContext();
-  }, []);
+  }, [fetchUserContext]);
 
   const register = import.meta.env.VITE_REGISTER;
 

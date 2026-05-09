@@ -41,6 +41,19 @@ export const filterParamsItems = async (params) => {
     const response = await api.get(`/item/params/${params.id_home}`, {params});
     return response.data;
   } catch (error) {
-    return { success: false, message: error.response.data.message };
+    return { success: false, message: error.response?.data?.message || "Error al cargar productos" };
+  }
+};
+
+export const importItemsFromHome = async (data) => {
+  try {
+    const response = await api.post("/item/import-from-home", data);
+    return response.data;
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error.response?.data?.message || "Error al importar productos",
+    };
   }
 };

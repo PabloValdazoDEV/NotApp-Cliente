@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAtomValue, useSetAtom } from "jotai";
-import { fetchUser, user } from "../../store/userAtom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import ButtonGeneral from "../Buttons/ButtonGeneral";
 import InputGeneral from "../Input/InputGeneral";
@@ -10,14 +8,10 @@ import useFilePreview from "../../hooks/useFilePreview";
 import { IoMdClose } from "react-icons/io";
 import { FaCloudArrowUp } from "react-icons/fa6";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
-import { getProfile, updateProfile } from "../../api/profile";
 import { updateHome } from "../../api/home";
 
 export default function ModalEditHogar({ clickClose, name, image, hogar_id }) {
   const queryClient = useQueryClient();
-  const userContext = useAtomValue(user);
-  const [loadingAnimation, setLoadingAnimation] = useState(false);
-  const fetchUserContext = useSetAtom(fetchUser);
   const [imageDelete, setImageDelete] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +34,7 @@ export default function ModalEditHogar({ clickClose, name, image, hogar_id }) {
 
   const onSubmit = (data) => {
     if (data.name.trim().length === 0) {
-      setValue("name", dataHogar.name);
+      setValue("name", name);
     }
     setLoading(true);
     mutationUpdateHogar.mutate({
@@ -50,19 +44,20 @@ export default function ModalEditHogar({ clickClose, name, image, hogar_id }) {
       imageDelete,
     });
     setImageDelete(false);
-    clickClose()
+    clickClose();
   };
 
+  const watchedFile = watch("file");
   const [file] = watch(["file"]);
   const [filePreview] = useFilePreview(file);
 
   useEffect(() => {
     setImageDelete(false);
-  }, [watch("file")]);
+  }, [watchedFile]);
 
   useEffect(() => {
     setValue("name", name);
-  }, [name]);
+  }, [name, setValue]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40  backdrop-blur-sm transition-opacity p-4">

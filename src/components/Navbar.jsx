@@ -5,7 +5,7 @@ import { useSetAtom } from "jotai";
 import { useState } from "react";
 import { useAtomValue } from "jotai";
 
-export default function () {
+export default function Navbar() {
   const navigate = useNavigate();
   const fetchUserContext = useSetAtom(fetchUser);
   const userContext = useAtomValue(user);

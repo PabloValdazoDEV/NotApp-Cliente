@@ -4,12 +4,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import useFilePreview from "../../hooks/useFilePreview";
 import InputGeneral from "../Input/InputGeneral";
 import SelectCategory from "../Input/SelectCategory";
+import SelectSupermarket from "../Input/SelectSupermarket";
 import { useEffect, useState } from "react";
 import { deleteItem, postItem, updateItem } from "../../api/item";
 import { useParams } from "react-router";
 import ModalGeneral from "./ModalGeneral";
 import toast from "react-hot-toast";
-import { FaRegTrashAlt } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
+import { FaCloudArrowUp } from "react-icons/fa6";
+import ButtonSecondary from "../Buttons/ButtonSecondary";
 
 export default function ModalItem({ onClickClosed, data }) {
   const queryClient = useQueryClient();
@@ -18,17 +21,18 @@ export default function ModalItem({ onClickClosed, data }) {
     second: data?.categories[1] || null,
     third: data?.categories[2] || null,
   });
+  const [supermarket, setSupermarket] = useState(
+    data?.supermarket || "CUALQUIERA"
+  );
 
   const { hogar_id } = useParams();
   const [modalDelete, setModalDelete] = useState(false);
   const [loadingAnimation, setLoadingAnimation] = useState(false);
   const [imageRemoved, setImageRemoved] = useState(false);
 
-
   const {
     handleSubmit,
     register,
-    reset,
     formState: { errors },
     watch,
     setValue,
@@ -38,7 +42,8 @@ export default function ModalItem({ onClickClosed, data }) {
     setValue("name", data?.name);
     setValue("price", data?.price);
     setValue("description", data?.description);
-  }, []);
+    setSupermarket(data?.supermarket || "CUALQUIERA");
+  }, [data?.description, data?.name, data?.price, data?.supermarket, setValue]);
 
   const mutation = useMutation({
     mutationFn: postItem,
@@ -57,7 +62,7 @@ export default function ModalItem({ onClickClosed, data }) {
     onSuccess: () => {
       toast.success("Producto actualizado correctamente!");
       setLoadingAnimation(false);
-      setImageRemoved(false)
+      setImageRemoved(false);
       onClickClosed();
       queryClient.invalidateQueries();
     },
@@ -73,7 +78,7 @@ export default function ModalItem({ onClickClosed, data }) {
         icon: "🗑️",
       });
       onClickClosed();
-      setImageRemoved(false)
+      setImageRemoved(false);
       queryClient.invalidateQueries();
     },
     onError: () => {
@@ -90,9 +95,10 @@ export default function ModalItem({ onClickClosed, data }) {
       const formData = {
         ...dataFrom,
         item_id: data.id,
-        file: dataFrom?.file?.[0] ?  dataFrom?.file?.[0] :  null,
+        file: dataFrom?.file?.[0] ? dataFrom?.file?.[0] : null,
         categories: [categories.first, categories.second, categories.third],
-        imageDelete: imageRemoved
+        supermarket,
+        imageDelete: imageRemoved,
       };
       setLoadingAnimation(true);
       mutationUpdate.mutate(formData);
@@ -102,156 +108,204 @@ export default function ModalItem({ onClickClosed, data }) {
         hogar_id: hogar_id,
         file: imageRemoved ? null : dataFrom?.file[0],
         categories: [categories.first, categories.second, categories.third],
+        supermarket,
       };
       setLoadingAnimation(true);
       mutation.mutate(formData);
     }
   };
 
-  useEffect(()=>{setImageRemoved(false)},[watch("file")])
+  const watchedFile = watch("file");
+
+  useEffect(() => {
+    setImageRemoved(false);
+  }, [watchedFile]);
 
   const [file] = watch(["file"]);
   const [filePreview] = useFilePreview(file);
   return (
     <>
       {!modalDelete && (
-        <div className="fixed inset-0 bg-[color:var(--color-primary)]/10 backdrop-blur-sm z-60 flex items-center justify-center px-4">
-          <div className="w-full max-w-xs md:max-w-lg bg-[color:var(--color-background-object)] rounded-lg shadow-lg p-6 flex flex-col gap-5 items-center relative">
-            {data && <h4>Editando {data?.name} </h4>}
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="flex flex-col w-full justify-center items-center gap-5"
-            >
-              <div
-                className="w-40 h-40 bg-cover bg-center rounded-2xl relative"
-                style={{
-                  backgroundImage: `url(${!imageRemoved ? filePreview ? filePreview : data?.image ? `https://res.cloudinary.com/${import.meta.env.VITE_NAME_CLOUDINARY}/image/upload/f_auto,q_auto,w_500/${data.image}`: "/IMG.jpg" : "/IMG.jpg"})`,
-                }}
-              >
-                <input
-                  type="file"
-                  id="file"
-                  className="w-full h-full rounded-2xl hidden"
-                  name="file"
-                  {...register("file")}
-                />
-                <label
-                  htmlFor="file"
-                  className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-2xl flex justify-center items-center text-6xl"
-                >
-                  +
-                </label>
-                <button
-                  onClick={() => {
-                    setImageRemoved(true)
-                  }}
-                  type="button"
-                  children={<FaRegTrashAlt />}
-                  className="text-md bg-red-600 text-white px-3 py-3 rounded-full aspect-square w-auto absolute top-[-15px] right-[-15px]"
-                />
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="relative flex max-h-[90vh] w-full max-w-[600px] flex-col rounded-2xl bg-white shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 p-5">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {data ? `Editar ${data?.name}` : "Crear producto"}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Imagen, datos básicos, categorías y supermercado.
+                </p>
               </div>
-              
+              <button
+                type="button"
+                onClick={onClickClosed}
+                className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Cerrar"
+              >
+                <IoMdClose size={22} />
+              </button>
+            </div>
 
-              {errors.name && (
-                <p className="text-red-500 text-xs">El nombre es obligatorio</p>
-              )}
-              <div className="grid grid-cols-6 gap-5">
-                <InputGeneral
-                  placeholder="Nombre del prod..."
-                  className="col-span-4"
-                  type="text"
-                  id="name"
-                  name="name"
-                  {...register("name", { required: true })}
-                />
-                <InputGeneral
-                  placeholder="€"
-                  className="col-span-2"
-                  type="number"
-                  id="price"
-                  name="price"
-                  {...register("price")}
-                  step="0.01"
-                />
+            <div className="flex flex-col gap-5 overflow-y-auto p-5">
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label className="text-sm font-medium text-gray-700">
+                    Imagen del producto
+                  </label>
+                  {(data?.image || filePreview) && !imageRemoved && (
+                    <ButtonSecondary
+                      type="button"
+                      onClick={() => setImageRemoved(true)}
+                      className="h-9 px-3 text-red-600 hover:bg-red-50"
+                    >
+                      Borrar
+                    </ButtonSecondary>
+                  )}
+                </div>
+                <label
+                  htmlFor="product-image-file"
+                  className="flex min-h-[180px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 bg-cover bg-center transition hover:border-(--color-primary) hover:bg-gray-100"
+                  style={{
+                    backgroundImage:
+                      !imageRemoved && filePreview
+                        ? `url(${filePreview})`
+                        : !imageRemoved && data?.image
+                          ? `url(https://res.cloudinary.com/${import.meta.env.VITE_NAME_CLOUDINARY}/image/upload/f_auto,q_auto,w_700/${data.image})`
+                          : "none",
+                  }}
+                >
+                  <div className="flex h-full w-full flex-col items-center justify-center rounded-xl bg-white/75 px-4 py-8 text-center">
+                    <FaCloudArrowUp className="mb-3 text-4xl text-gray-500" />
+                    <p className="text-sm font-medium text-gray-700">
+                      Haz clic para subir una imagen
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      PNG, JPG o WEBP
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    id="product-image-file"
+                    className="hidden"
+                    accept="image/*"
+                    name="file"
+                    {...register("file")}
+                  />
+                </label>
+              </div>
+
+              <div>
+                {errors.name && (
+                  <p className="mb-2 text-xs text-red-500">
+                    El nombre es obligatorio
+                  </p>
+                )}
+                <div className="grid grid-cols-6 gap-3">
+                  <InputGeneral
+                    placeholder="Nombre del producto"
+                    className="col-span-4"
+                    type="text"
+                    id="name"
+                    name="name"
+                    {...register("name", { required: true })}
+                  />
+                  <InputGeneral
+                    placeholder="€"
+                    className="col-span-2"
+                    type="number"
+                    id="price"
+                    name="price"
+                    {...register("price")}
+                    step="0.01"
+                  />
+                </div>
               </div>
 
               <textarea
                 placeholder="Descripción del producto"
-                className={`w-full bg-gray-100 border border-[color:var(--color-text)] rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-neutral-700  text-neutral-700 `}
+                className="min-h-24 w-full rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-700"
                 name="description"
                 {...register("description")}
-              ></textarea>
-              <h4>Seleccione las categorias</h4>
-              <div className="grid grid-cols-2 gap-3 w-full">
-                <SelectCategory
-                  value={categories.first}
-                  onChange={(e) => {
-                    setCategories({ ...categories, first: e });
-                  }}
-                />
-                <SelectCategory
-                  value={categories.second}
-                  onChange={(e) => {
-                    setCategories({ ...categories, second: e });
-                  }}
+              />
+
+              <div className="flex flex-col gap-2">
+                <h4 className="text-sm font-semibold text-gray-700">
+                  Categorías
+                </h4>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <SelectCategory
+                    value={categories.first}
+                    onChange={(e) => {
+                      setCategories({ ...categories, first: e });
+                    }}
+                  />
+                  <SelectCategory
+                    value={categories.second}
+                    onChange={(e) => {
+                      setCategories({ ...categories, second: e });
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <h4 className="text-sm font-semibold text-gray-700">
+                  Supermercado
+                </h4>
+                <SelectSupermarket
+                  value={supermarket}
+                  onChange={setSupermarket}
                 />
               </div>
-              <div className="flex flex-row gap-5 justify-between">
-                {data && (
-                  <ButtonGeneral
-                    onClick={() => {
-                      setModalDelete(true);
-                    }}
-                    children="Borrar"
-                    className="text-white bg-red-500 hover:bg-red-600"
-                  />
-                )}
+            </div>
 
+            <div className="flex flex-col-reverse gap-3 border-t border-gray-100 p-5 sm:flex-row sm:justify-between">
+              {data ? (
+                <ButtonGeneral
+                  type="button"
+                  onClick={() => {
+                    setModalDelete(true);
+                  }}
+                  className="bg-red-500 text-white hover:bg-red-600"
+                >
+                  Borrar
+                </ButtonGeneral>
+              ) : (
+                <span />
+              )}
+              <div className="flex justify-end gap-3">
+                <ButtonSecondary type="button" onClick={onClickClosed}>
+                  Cancelar
+                </ButtonSecondary>
                 <ButtonGeneral
                   loading={loadingAnimation}
                   type="submit"
-                  children={data ? "Actualizar" : "Crear producto"}
                   className="text-white"
-                />
+                >
+                  {data ? "Actualizar" : "Crear producto"}
+                </ButtonGeneral>
               </div>
-            </form>
-            <button
-              onClick={onClickClosed}
-              className="text-sm bg-red-600 text-white px-2 py-2 rounded-3xl w-auto absolute top-[-20px] right-[-20px]"
-            >
-              <svg
-                className="w-8 h-8"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+            </div>
+          </form>
         </div>
       )}
       {modalDelete && (
-        <>
-          {" "}
-          <ModalGeneral
-            titulo={`Borrar el hogar ${data?.name}`}
-            text="Se borran todos las listas y los demas miembre no podran acceder nunca mas, se perderan todos los datos."
-            textBtnGreen="Cancelar"
-            textBtnRed="Borrar"
-            onClickGreen={() => {
-              setModalDelete(false);
-            }}
-            onClickRed={() => {
-              onSubmitDteleteItem();
-            }}
-          />
-        </>
+        <ModalGeneral
+          titulo={`Borrar ${data?.name}`}
+          text="Se eliminará este producto del hogar y dejará de estar disponible para nuevas listas."
+          textBtnGreen="Cancelar"
+          textBtnRed="Borrar"
+          onClickGreen={() => {
+            setModalDelete(false);
+          }}
+          onClickRed={() => {
+            onSubmitDteleteItem();
+          }}
+        />
       )}
     </>
   );

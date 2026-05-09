@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
-import { useNavigate } from "react-router";
 import { user } from "../../store/userAtom";
 import toast from "react-hot-toast";
 import ButtonGeneral from "../Buttons/ButtonGeneral";
@@ -15,14 +14,12 @@ import ButtonSecondary from "../Buttons/ButtonSecondary";
 
 export default function ModalCreateHogar({ clickClose }) {
   const userData = useAtomValue(user);
-  const navegate = useNavigate();
   const queryClient = useQueryClient();
   const [loadingAnimation, setLoadingAnimation] = useState(false);
 
   const {
     handleSubmit,
     register,
-    reset,
     formState: { errors },
     watch,
   } = useForm();

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHome, deleteHome } from "../api/home";
 import { IoArrowBack } from "react-icons/io5";
-import { postInvite } from "../api/member";
+import { deleteMember } from "../api/member";
 import { useAtomValue } from "jotai";
 import { user } from "../store/userAtom";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
@@ -22,8 +22,35 @@ import Pagination from "../components/Pagination/Pagination";
 import ButtonSecondary from "../components/Buttons/ButtonSecondary";
 import ModalEditHogar from "../components/Modal/ModalEditHogar";
 import HogarMembers from "./HogarMembers";
+import ModalImportItems from "../components/Modal/ModalImportItems";
 
-export default function () {
+const getListStatus = (list) => {
+  const itemsList = list.itemsList || [];
+  const pendingItems = itemsList.filter((itemList) => {
+    const status = itemList.status || (itemList.check_take ? "FOUND" : "PENDING");
+    return status === "PENDING";
+  }).length;
+
+  return {
+    isComplete: itemsList.length > 0 && pendingItems === 0,
+    createdAt: new Date(list.createdAt || 0).getTime(),
+  };
+};
+
+const sortListsForHome = (lists = []) => {
+  return [...lists].sort((a, b) => {
+    const aStatus = getListStatus(a);
+    const bStatus = getListStatus(b);
+
+    if (aStatus.isComplete !== bStatus.isComplete) {
+      return aStatus.isComplete ? 1 : -1;
+    }
+
+    return bStatus.createdAt - aStatus.createdAt;
+  });
+};
+
+export default function Hogar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -43,17 +70,17 @@ export default function () {
   const [modalMember, setModalMember] = useState(false);
   const [modalCreateList, setModalCreateList] = useState(null);
   const [modalEditHogar, setModalEditHogar] = useState(false);
+  const [modalImportItems, setModalImportItems] = useState(false);
   const [dataEdit, setDataEdit] = useState({});
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [imageRemoved, setImageRemoved] = useState(false);
   const [active, setActive] = useState({
     hogar: false,
     productos: elementParams.element === "productos" ? true : false,
     listas: elementParams.element === "lista" ? true : false,
   });
 
-  const { register, handleSubmit, setValue, watch, reset } = useForm();
+  const { register, handleSubmit, reset } = useForm();
 
   const {
     data: dataHogar,
@@ -78,8 +105,8 @@ export default function () {
     },
   });
 
-  const mutationInivteHogar = useMutation({
-    mutationFn: postInvite,
+  const mutationDeleteMember = useMutation({
+    mutationFn: deleteMember,
     onSuccess: (data) => {
       if (data.success === false) {
         toast.error(data.message);
@@ -89,18 +116,6 @@ export default function () {
       queryClient.invalidateQueries();
     },
   });
-
-  // const mutationDeleteMember = useMutation({
-  //   mutationFn: deleteMember,
-  //   onSuccess: (data) => {
-  //     if (data.success === false) {
-  //       toast.error(data.message);
-  //     } else {
-  //       toast.success(data.message);
-  //     }
-  //     queryClient.invalidateQueries();
-  //   },
-  // });
 
   // const mutationUpdateMember = useMutation({
   //   mutationFn: updateMember,
@@ -138,10 +153,6 @@ export default function () {
   useEffect(() => {
     setSearchParams(elementParams, { replace: true });
   }, []);
-
-  useEffect(() => {
-    setImageRemoved(false);
-  }, [watch("file")]);
 
   // Mutations with Data
 
@@ -185,7 +196,6 @@ export default function () {
     });
   };
   const onSubmiFindList = (data) => {
-    console.log(data);
     setElementParams({
       ...elementParams,
       title: data.titleFindListMobile || data.titleFindList,
@@ -210,26 +220,8 @@ export default function () {
     }
     reset();
   };
-  const onSubmitUpdateHogar = (data) => {
-    if (data.name.trim().length === 0) {
-      setValue("name", dataHogar.name);
-    }
-    setLoading(true);
-    mutationUpdateHogar.mutate({
-      ...data,
-      id: hogar_id,
-      file: imageRemoved ? null : data?.file[0],
-      imageDelete: imageRemoved,
-    });
-    setImageRemoved(false);
-  };
-
   const onSubmitDteleteHogar = () => {
     mutationDeleteHogar.mutate(hogar_id);
-  };
-
-  const onSubmitInviteHogar = (data) => {
-    mutationInivteHogar.mutate({ ...data, id: hogar_id });
   };
 
   if (isLoading) {
@@ -485,30 +477,42 @@ export default function () {
                 dataParamsMutateItem?.length < 6 ? "md:static" : "md:fixed"
               } ${dataParamsMutateItem?.length < 9 ? "lg:static" : "lg:fixed"}`}
             >
-              <ButtonGeneral
-                className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
-                onClick={() => {
-                  setModalCreateItem(true);
-                }}
-                children={
-                  <>
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 6v12M6 12h12"
-                      />
-                    </svg>
-                    <span>Crear un Producto</span>
-                  </>
-                }
-              />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                {(isOwner || isAdmin) && (
+                  <ButtonSecondary
+                    className="rounded-full bg-white shadow-lg"
+                    onClick={() => {
+                      setModalImportItems(true);
+                    }}
+                  >
+                    Importar productos
+                  </ButtonSecondary>
+                )}
+                <ButtonGeneral
+                  className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
+                  onClick={() => {
+                    setModalCreateItem(true);
+                  }}
+                  children={
+                    <>
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 6v12M6 12h12"
+                        />
+                      </svg>
+                      <span>Crear un Producto</span>
+                    </>
+                  }
+                />
+              </div>
             </div>
             <Pagination
               elementParams={elementParams}
@@ -531,11 +535,14 @@ export default function () {
               {...register("titleFindListMobile")}
             />
             <div className="grid md:grid-cols-2 md:gap-10 gap-5">
-              {dataParamsMutateList?.map((item, i) => {
+              {sortListsForHome(dataParamsMutateList)?.map((item) => {
                 return (
                   <CardList
-                    key={i}
+                    key={item.id}
                     data={item}
+                    onListCreated={() => {
+                      mutateFilterParamsList(elementParams);
+                    }}
                     // active={active}
                     // editClick={() => {
                     //   setModalEditItem(true);
@@ -611,6 +618,18 @@ export default function () {
               mutateFilterParamsItem(elementParams);
             }}
             data={dataEdit}
+          />
+        )}
+        {modalImportItems && (
+          <ModalImportItems
+            currentHomeId={hogar_id}
+            currentHomeName={dataHogar?.name}
+            onClickClosed={() => {
+              setModalImportItems(false);
+            }}
+            onImported={() => {
+              mutateFilterParamsItem(elementParams);
+            }}
           />
         )}
         {modalDeleteHogar && (

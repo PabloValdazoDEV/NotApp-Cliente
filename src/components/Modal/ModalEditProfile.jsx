@@ -19,7 +19,7 @@ export default function ModalEditProfile({ clickClose }) {
   const fetchUserContext = useSetAtom(fetchUser);
   const [imageDelete, setImageDelete] = useState(false);
 
-  const { data, error, isLoading } = useQuery({
+  const { data: profileData, error, isLoading } = useQuery({
     queryKey: ["getProfile", userContext.id],
     queryFn: () => {
       return getProfile(userContext.id);
@@ -36,7 +36,7 @@ export default function ModalEditProfile({ clickClose }) {
 
   const mutationProfile = useMutation({
     mutationFn: updateProfile,
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("Perfil actualizado!");
       setLoadingAnimation(false);
       setImageDelete(false);
@@ -49,30 +49,31 @@ export default function ModalEditProfile({ clickClose }) {
     },
   });
 
-  const onSubmit = (data) => {
-    if (data.name.trim().length === 0) {
-      setValue("name", data?.user.name);
+  const onSubmit = (formData) => {
+    if (formData.name.trim().length === 0) {
+      setValue("name", profileData?.user.name);
     }
     setLoadingAnimation(true);
     mutationProfile.mutate({
-      ...data,
+      ...formData,
       user_id: userContext.id,
-      file: imageDelete ? null : data?.file[0],
+      file: imageDelete ? null : formData?.file[0],
       imageDelete,
     });
     setImageDelete(false);
   };
+  const watchedFile = watch("file");
   const [file] = watch(["file"]);
   const [filePreview] = useFilePreview(file);
 
   useEffect(() => {
     setImageDelete(false);
-  }, [watch("file")]);
+  }, [watchedFile]);
 
   useEffect(() => {
-    setValue("name", data?.user.name);
-    setValue("email", data?.user.email);
-  }, [data?.user]);
+    setValue("name", profileData?.user.name);
+    setValue("email", profileData?.user.email);
+  }, [profileData?.user, setValue]);
 
   if (isLoading) {
     return <p>Cargando...</p>;
@@ -153,10 +154,10 @@ export default function ModalEditProfile({ clickClose }) {
                   backgroundImage: `url(${
                     !imageDelete
                       ? filePreview ? filePreview : 
-                      data.user.image ? `https://res.cloudinary.com/${
+                      profileData.user.image ? `https://res.cloudinary.com/${
                               import.meta.env.VITE_NAME_CLOUDINARY
                             }/image/upload/f_auto,q_auto,w_500/${
-                              data.user.image
+                              profileData.user.image
                             }` : ""
                        : ""
                   })`,

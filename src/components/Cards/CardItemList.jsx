@@ -2,19 +2,33 @@ import { BiCartDownload } from "react-icons/bi";
 import PillGenerical from "../Pill/PillGenerical";
 import ButtonGeneral from "../Buttons/ButtonGeneral";
 import { LuSearchX } from "react-icons/lu";
+import { BsCartCheckFill } from "react-icons/bs";
+import { SUPERMARKET_LABELS } from "../../constants/supermarkets";
 
 
-export default function CardItemList({ dataProv, type }) {
-
-
-  // console.log(dataProv);
+export default function CardItemList({
+  dataProv,
+  type,
+  onDelete,
+  onQuantityChange,
+  onToggleChecked,
+  onStatusChange,
+  loading = false,
+  pending = false,
+}) {
+  const quantity = dataProv?.quantity || 1;
+  const status = dataProv?.status || (dataProv?.check_take ? "FOUND" : "PENDING");
+  const checked = status === "FOUND";
+  const notFound = status === "NOT_FOUND";
 
   if(type === "do"){
 return (
     <>
       {" "}
       <div
-        className={`grid grid-cols-10 gap-3 mb-5 border-b-1 pb-5 last:border-0 border-[var(--color-primary)]${
+        className={`grid grid-cols-10 gap-3 mb-5 border-b-1 pb-5 last:border-0 border-[var(--color-primary)] ${
+          status !== "PENDING" ? "opacity-60" : ""
+        } ${
           dataProv.item.image ? "grid-rows-4 " : "grid-rows-4 "
         }`}
       >
@@ -53,23 +67,40 @@ return (
               dataProv.item.image ? "col-span-5" : "col-span-8"
             } `}
           >
-            Cantidad: 2
+            Cantidad: {quantity}
           </p>
+          {pending && (
+            <p className="text-xs text-amber-600 row-span-1 col-span-8">
+              Pendiente de sincronizar
+            </p>
+          )}
         </div>
-        <div className="col-span-2 row-span-4 aspect-square my-auto w-full">
+        <div className="col-span-2 row-span-4 aspect-square my-auto w-full flex flex-col gap-4 ">
           <button
-            //   onClick={() => {
-            //     active.productos ? addCart() : console.log("añadir");
-            //   }}
-            className="aspect-square bg-[color:var(--color-primary)] text-white hover:bg-[color:var(--color-primary)] transition-transform duration-200 ease-in-out transform hover:scale-105 font-medium px-2 py-1 rounded-md w-full"
+            onClick={() => {
+              if (onStatusChange) {
+                onStatusChange(dataProv, checked ? "PENDING" : "FOUND");
+              } else {
+                onToggleChecked?.(dataProv, !checked);
+              }
+            }}
+            className={`aspect-square text-white transition-transform duration-200 ease-in-out transform hover:scale-105 font-medium px-2 py-1 rounded-md w-full ${
+              checked
+                ? "bg-green-600 hover:bg-green-600"
+                : "bg-[color:var(--color-primary)] hover:bg-[color:var(--color-primary)]"
+            }`}
           >
-            <BiCartDownload className="text-3xl w-full" />
+            {checked ? (
+              <BsCartCheckFill className="text-3xl w-full" />
+            ) : (
+              <BiCartDownload className="text-3xl w-full" />
+            )}
           </button>
           <button
-            //   onClick={() => {
-            //     active.productos ? addCart() : console.log("añadir");
-            //   }}
-            className="aspect-square bg-red-500 text-white hover:bg-red-500 transition-transform duration-200 ease-in-out transform hover:scale-105 font-medium px-2 py-1 rounded-md w-full"
+            onClick={() => onStatusChange?.(dataProv, notFound ? "PENDING" : "NOT_FOUND")}
+            className={`aspect-square text-white transition-transform duration-200 ease-in-out transform hover:scale-105 font-medium px-2 py-1 rounded-md w-full ${
+              notFound ? "bg-slate-600 hover:bg-slate-600" : "bg-red-500 hover:bg-red-500"
+            }`}
           >
           
            <LuSearchX className="text-3xl w-full" />
@@ -83,6 +114,11 @@ return (
         >
           {dataProv.item.price && (
             <PillGenerical category={`${dataProv.item.price?.replace(".", ",")}€`} />
+          )}
+          {dataProv.item.supermarket && dataProv.item.supermarket !== "CUALQUIERA" && (
+            <PillGenerical
+              category={SUPERMARKET_LABELS[dataProv.item.supermarket] || dataProv.item.supermarket}
+            />
           )}
           {dataProv.item.categories.map((category, index) => {
             return <PillGenerical key={index} category={category} />;
@@ -99,7 +135,7 @@ if(type === "add"){
 
   return (
     <>
-      <div className=" grid grid-cols-10 grid-rows-3 gap-3  mb-5 border-b-1 pb-5 last:border-0 border-[var(--color-primary)]">
+      <div className="grid grid-cols-10 gap-3 mb-5 border-b-1 pb-5 last:border-0 border-[var(--color-primary)]">
         {dataProv.item.image && (
           <div className="col-span-3 row-span-2 ">
             <img
@@ -130,15 +166,35 @@ if(type === "add"){
            {dataProv.item.price && (
             <PillGenerical category={`${dataProv.item.price?.replace(".", ",")}€`} />
           )}
+          {dataProv.item.supermarket && dataProv.item.supermarket !== "CUALQUIERA" && (
+            <PillGenerical
+              category={SUPERMARKET_LABELS[dataProv.item.supermarket] || dataProv.item.supermarket}
+            />
+          )}
         </div>
-        <div className="col-span-10 row-span-1  flex justify-between items-center">
-          <ButtonGeneral children="Borrar" className=" bg-red-600 hover:bg-red-600 " onClick={()=>console.log("Borrar")}/>
+        <div className="col-span-10 row-span-1 flex justify-between items-center gap-3">
+          <ButtonGeneral
+            children="Borrar"
+            className="bg-red-600 hover:bg-red-600"
+            loading={loading}
+            onClick={() => onDelete?.(dataProv)}
+          />
           <div className="flex flex-row gap-3 justify-center items-center">
-            <ButtonGeneral children="-" className="" onClick={()=>console.log("-")}/>
-            <p>0</p>
-           <ButtonGeneral children="+" className="" onClick={()=>console.log("+")}/>
+            <ButtonGeneral
+              children="-"
+              className={quantity <= 1 ? "opacity-50" : ""}
+              loading={loading}
+              onClick={() => {
+                if (quantity > 1) onQuantityChange?.(dataProv, quantity - 1);
+              }}
+            />
+            <p className="min-w-8 text-center font-semibold">{quantity}</p>
+            <ButtonGeneral
+              children="+"
+              loading={loading}
+              onClick={() => onQuantityChange?.(dataProv, quantity + 1)}
+            />
           </div>
-          <ButtonGeneral children="Editar" className="" onClick={()=>console.log("Editar")}/>
         </div>
       </div>
     </>

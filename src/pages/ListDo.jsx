@@ -1,14 +1,128 @@
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import CardItemList from "../components/Cards/CardItemList";
 import { useQuery } from "@tanstack/react-query";
-import { getList } from "../api/list";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { io } from "socket.io-client";
+import toast from "react-hot-toast";
+import { getList, updateItemList } from "../api/list";
+import { getSocketUrl } from "../api/socket";
+import InputGeneral from "../components/Input/InputGeneral";
+import ButtonSecondary from "../components/Buttons/ButtonSecondary";
+import { IoArrowBack } from "react-icons/io5";
+import { FaSlidersH } from "react-icons/fa";
+import SelectSupermarket from "../components/Input/SelectSupermarket";
+import { SUPERMARKET_LABELS } from "../constants/supermarkets";
+
+const PENDING_ACTIONS_KEY = "notapp:listdo:pending-actions";
+const CATEGORY_OPTIONS = {
+  FRUTAS_VERDURAS: "Frutas y verduras",
+  LACTEOS: "Lácteos",
+  CARNE: "Carne",
+  PESCADO: "Pescado",
+  BEBIDAS: "Bebidas",
+  PANADERIA: "Panadería",
+  DULCES: "Dulces",
+  CONGELADOS: "Congelados",
+  HIGIENE: "Higiene",
+  LIMPIEZA: "Limpieza",
+  MASCOTAS: "Mascotas",
+  OTROS: "Otros",
+};
+const ITEM_STATUSES = {
+  PENDING: "PENDING",
+  FOUND: "FOUND",
+  NOT_FOUND: "NOT_FOUND",
+};
+
+const getItemsCacheKey = (listId) => `notapp:listdo:items:${listId}`;
+
+const readPendingActions = () => {
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_ACTIONS_KEY)) || [];
+  } catch {
+    return [];
+  }
+};
+
+const savePendingActionsForList = (listId, actions) => {
+  const otherActions = readPendingActions().filter(
+    (action) => action.list_id !== listId
+  );
+
+  localStorage.setItem(
+    PENDING_ACTIONS_KEY,
+    JSON.stringify([...otherActions, ...actions])
+  );
+};
+
+const readCachedItems = (listId) => {
+  try {
+    return JSON.parse(localStorage.getItem(getItemsCacheKey(listId))) || [];
+  } catch {
+    return [];
+  }
+};
+
+const saveCachedItems = (listId, items) => {
+  localStorage.setItem(getItemsCacheKey(listId), JSON.stringify(items));
+};
+
+const createMutationId = () => {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const upsertItemList = (items, itemList) => {
+  const exists = items.some((item) => item.id === itemList.id);
+  const nextItems = exists
+    ? items.map((item) => (item.id === itemList.id ? { ...item, ...itemList } : item))
+    : [...items, itemList];
+
+  return nextItems.sort((a, b) => a.item.name.localeCompare(b.item.name));
+};
+
+const getItemSupermarket = (itemList) => itemList.item.supermarket || "CUALQUIERA";
+
+const getSupermarketLabel = (supermarket) =>
+  SUPERMARKET_LABELS[supermarket] || supermarket;
+
+const getItemStatus = (item) =>
+  item.status || (item.check_take ? ITEM_STATUSES.FOUND : ITEM_STATUSES.PENDING);
+
+const groupBySupermarket = (items) => {
+  const groups = items.reduce((acc, item) => {
+    const supermarket = getItemSupermarket(item);
+    const currentItems = acc.get(supermarket) || [];
+    acc.set(supermarket, [...currentItems, item]);
+    return acc;
+  }, new Map());
+
+  return Array.from(groups.entries())
+    .map(([supermarket, supermarketItems]) => ({
+      supermarket,
+      label: getSupermarketLabel(supermarket),
+      items: supermarketItems,
+    }))
+    .sort(
+      (a, b) =>
+        b.items.length - a.items.length || a.label.localeCompare(b.label)
+    );
+};
 
 export default function ListDo() {
   const { hogar_id, list_id } = useParams();
-
-  //   console.log(hogar_id, list_id);
-
-  // Hay que hacer un query que se traiga todos los datos de esa lista, pero primero comprobando que esa lista exista en ese hogar
+  const navigate = useNavigate();
+  const [items, setItems] = useState(() => readCachedItems(list_id));
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [supermarket, setSupermarket] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [showFilters, setShowFilters] = useState(false);
+  const [pendingActions, setPendingActions] = useState(() =>
+    readPendingActions().filter((action) => action.list_id === list_id)
+  );
 
   const {
     data: dataList,
@@ -21,21 +135,357 @@ export default function ListDo() {
     },
   });
 
-  if (isLoading) {
+  const pendingActionIds = useMemo(
+    () => new Set(pendingActions.map((action) => action.item_list_id)),
+    [pendingActions]
+  );
+
+  useEffect(() => {
+    if (Array.isArray(dataList)) {
+      setItems(dataList);
+    }
+  }, [dataList]);
+
+  useEffect(() => {
+    saveCachedItems(list_id, items);
+  }, [items, list_id]);
+
+  useEffect(() => {
+    savePendingActionsForList(list_id, pendingActions);
+  }, [list_id, pendingActions]);
+
+  useEffect(() => {
+    const updateOnline = () => setIsOnline(navigator.onLine);
+
+    window.addEventListener("online", updateOnline);
+    window.addEventListener("offline", updateOnline);
+
+    return () => {
+      window.removeEventListener("online", updateOnline);
+      window.removeEventListener("offline", updateOnline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const socket = io(getSocketUrl(), {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+
+    socket.on("connect", () => {
+      setSocketConnected(true);
+      socket.emit("list:join", { list_id });
+    });
+
+    socket.on("disconnect", () => {
+      setSocketConnected(false);
+    });
+
+    socket.on("list:sync", (payload) => {
+      if (payload.list_id === list_id && Array.isArray(payload.items)) {
+        setItems(payload.items);
+      }
+    });
+
+    socket.on("itemlist:created", (itemList) => {
+      if (itemList.list_id === list_id) {
+        setItems((prev) => upsertItemList(prev, itemList));
+      }
+    });
+
+    socket.on("itemlist:updated", (itemList) => {
+      if (itemList.list_id === list_id) {
+        setItems((prev) => upsertItemList(prev, itemList));
+        if (itemList.clientMutationId) {
+          setPendingActions((prev) =>
+            prev.filter(
+              (action) => action.clientMutationId !== itemList.clientMutationId
+            )
+          );
+        }
+      }
+    });
+
+    socket.on("itemlist:deleted", (itemList) => {
+      if (itemList.list_id === list_id) {
+        setItems((prev) => prev.filter((item) => item.id !== itemList.id));
+      }
+    });
+
+    return () => {
+      socket.emit("list:leave", { list_id });
+      socket.disconnect();
+    };
+  }, [list_id]);
+
+  const flushPendingActions = useCallback(async () => {
+    if (!navigator.onLine || pendingActions.length === 0) return;
+
+    for (const action of pendingActions) {
+      const response = await updateItemList({
+        item_list_id: action.item_list_id,
+        status:
+          action.status ||
+          (action.check_take ? ITEM_STATUSES.FOUND : ITEM_STATUSES.PENDING),
+        clientMutationId: action.clientMutationId,
+      });
+
+      if (response.success === false) {
+        toast.error(response.message);
+        return;
+      }
+
+      if (response.itemList) {
+        setItems((prev) => upsertItemList(prev, response.itemList));
+      }
+
+      setPendingActions((prev) =>
+        prev.filter(
+          (pendingAction) =>
+            pendingAction.clientMutationId !== action.clientMutationId
+        )
+      );
+    }
+  }, [pendingActions]);
+
+  useEffect(() => {
+    if (isOnline) {
+      flushPendingActions();
+    }
+  }, [flushPendingActions, isOnline]);
+
+  useEffect(() => {
+    if (socketConnected) {
+      flushPendingActions();
+    }
+  }, [flushPendingActions, socketConnected]);
+
+  const handleStatusChange = (itemList, status) => {
+    const action = {
+      type: "update-status",
+      list_id,
+      item_list_id: itemList.id,
+      status,
+      clientMutationId: createMutationId(),
+      createdAt: Date.now(),
+    };
+
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === itemList.id
+          ? { ...item, status, check_take: status === ITEM_STATUSES.FOUND }
+          : item
+      )
+    );
+
+    setPendingActions((prev) => [
+      ...prev.filter((pendingAction) => pendingAction.item_list_id !== itemList.id),
+      action,
+    ]);
+  };
+
+  const filteredItems = useMemo(() => {
+    const searchNormalized = search.trim().toLowerCase();
+
+    return items
+      .filter((item) => {
+        const matchesSearch = item.item.name
+          .toLowerCase()
+          .includes(searchNormalized);
+        const matchesCategory =
+          !category || category === "0" || item.item.categories?.includes(category);
+        const matchesSupermarket =
+          !supermarket || getItemSupermarket(item) === supermarket;
+
+        return matchesSearch && matchesCategory && matchesSupermarket;
+      })
+      .sort((a, b) => {
+        const result = a.item.name.localeCompare(b.item.name);
+        return sortOrder === "asc" ? result : -result;
+      });
+  }, [category, items, search, sortOrder, supermarket]);
+
+  const pendingItems = filteredItems.filter(
+    (item) => getItemStatus(item) === ITEM_STATUSES.PENDING
+  );
+  const checkedItems = filteredItems.filter(
+    (item) => getItemStatus(item) === ITEM_STATUSES.FOUND
+  );
+  const notFoundItems = filteredItems.filter(
+    (item) => getItemStatus(item) === ITEM_STATUSES.NOT_FOUND
+  );
+  const shouldGroupBySupermarket = !supermarket;
+
+  const renderCards = (sectionItems) =>
+    sectionItems.map((item) => (
+      <CardItemList
+        dataProv={item}
+        type="do"
+        key={item.id}
+        pending={pendingActionIds.has(item.id)}
+        onStatusChange={handleStatusChange}
+      />
+    ));
+
+  const renderStatusBlock = (title, sectionItems, titleTag = "h2") => {
+    if (sectionItems.length === 0) return null;
+    const Title = titleTag;
+
+    return (
+      <section className="flex flex-col gap-3">
+        <Title className="font-semibold text-gray-900">{title}</Title>
+        {renderCards(sectionItems)}
+      </section>
+    );
+  };
+
+  const renderSupermarketGroups = () =>
+    groupBySupermarket(filteredItems).map((group) => {
+      const groupPendingItems = group.items.filter(
+        (item) => getItemStatus(item) === ITEM_STATUSES.PENDING
+      );
+      const groupCheckedItems = group.items.filter(
+        (item) => getItemStatus(item) === ITEM_STATUSES.FOUND
+      );
+      const groupNotFoundItems = group.items.filter(
+        (item) => getItemStatus(item) === ITEM_STATUSES.NOT_FOUND
+      );
+
+      return (
+        <section key={group.supermarket} className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-2">
+            <h2 className="text-lg font-bold text-gray-900">{group.label}</h2>
+            <span className="rounded-md bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+              {group.items.length} productos
+            </span>
+          </div>
+          {renderStatusBlock("Pendientes", groupPendingItems, "h3")}
+          {renderStatusBlock("Comprados", groupCheckedItems, "h3")}
+          {renderStatusBlock(
+            "Productos no encontrados",
+            groupNotFoundItems,
+            "h3"
+          )}
+        </section>
+      );
+    });
+
+  if (isLoading && items.length === 0) {
     return <p className="text-center">Cargando...</p>;
   }
-  if (error || dataList.success === false) {
+  if ((error || dataList?.success === false) && items.length === 0) {
    return <p className="text-center">Ha habido un error, recarga la página.</p>;
   }
 
-  console.log(dataList);
-
   return (
-    <>
-      <p>Page List do</p>
-      {dataList && dataList.map((data, i) => (
-        <CardItemList dataProv={data} type={"do"} key={i}/>
-      ))}
-    </>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <ButtonSecondary
+            className="w-fit"
+            onClick={() => navigate(`/hogar/${hogar_id}`)}
+            children={
+              <span className="flex items-center gap-2">
+                <IoArrowBack /> Volver
+              </span>
+            }
+          />
+          <h1 className="text-2xl font-bold text-gray-900">Hacer la compra</h1>
+        </div>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <span
+            className={`px-3 py-1 rounded-md ${
+              isOnline ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            }`}
+          >
+            {isOnline ? "Online" : "Sin conexión"}
+          </span>
+          <span
+            className={`px-3 py-1 rounded-md ${
+              socketConnected
+                ? "bg-blue-100 text-blue-700"
+                : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {socketConnected ? "Tiempo real activo" : "Reconectando tiempo real"}
+          </span>
+          {pendingActions.length > 0 && (
+            <span className="px-3 py-1 rounded-md bg-amber-100 text-amber-700">
+              {pendingActions.length} cambio pendiente
+            </span>
+          )}
+          {(error || dataList?.success === false) && items.length > 0 && (
+            <span className="px-3 py-1 rounded-md bg-amber-100 text-amber-700">
+              Mostrando copia local
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+        <InputGeneral
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar producto..."
+        />
+        <ButtonSecondary
+          type="button"
+          onClick={() => setShowFilters((prev) => !prev)}
+          children={
+            <span className="flex items-center gap-2">
+              <FaSlidersH /> Filtros
+            </span>
+          }
+        />
+      </div>
+
+      {showFilters && (
+        <div className="grid gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
+          <select
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-(--color-primary) focus:ring-1 focus:ring-(--color-primary) transition-colors outline-none text-base"
+          >
+            <option value="">Todas las categorías</option>
+            {Object.entries(CATEGORY_OPTIONS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <SelectSupermarket
+            value={supermarket}
+            onChange={setSupermarket}
+            includeAll
+          />
+          <select
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value)}
+            className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-(--color-primary) focus:ring-1 focus:ring-(--color-primary) transition-colors outline-none text-base"
+          >
+            <option value="asc">A-Z</option>
+            <option value="desc">Z-A</option>
+          </select>
+        </div>
+      )}
+
+      {items.length === 0 && (
+        <p className="text-center">Esta lista todavía no tiene productos.</p>
+      )}
+
+      {items.length > 0 && filteredItems.length === 0 && (
+        <p className="text-center">No hay productos con esos filtros.</p>
+      )}
+
+      {shouldGroupBySupermarket ? (
+        <div className="flex flex-col gap-6">{renderSupermarketGroups()}</div>
+      ) : (
+        <>
+          {renderStatusBlock("Pendientes", pendingItems)}
+          {renderStatusBlock("Comprados", checkedItems)}
+          {renderStatusBlock("Productos no encontrados", notFoundItems)}
+        </>
+      )}
+    </div>
   );
 }

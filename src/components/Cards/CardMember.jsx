@@ -1,18 +1,12 @@
 import { useAtomValue } from "jotai";
 import { user } from "../../store/userAtom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteMember, updateMember } from "../../api/member";
-import toast from "react-hot-toast";
 import { useState } from "react";
-import ModalMember from "../Modal/ModalMember";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
 import ModalEditMember from "../Modal/ModalEditMember";
 
 export default function CardMember({ data }) {
   const userContext = useAtomValue(user);
   const [modalEditMember, setModalEditMember] = useState(null);
-    const queryClient = useQueryClient();
-
 
   //   console.log(data);
   return (
