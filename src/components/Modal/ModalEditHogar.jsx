@@ -9,6 +9,7 @@ import { IoMdClose } from "react-icons/io";
 import { FaCloudArrowUp } from "react-icons/fa6";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
 import { updateHome } from "../../api/home";
+import ImageSourceInputs from "../Input/ImageSourceInputs";
 
 export default function ModalEditHogar({ clickClose, name, image, hogar_id }) {
   const queryClient = useQueryClient();
@@ -113,8 +114,7 @@ export default function ModalEditHogar({ clickClose, name, image, hogar_id }) {
               </label>
 
               {/* ZONA CLICABLE */}
-              <label
-                htmlFor="dropzone-file"
+              <div
                 style={{
                   backgroundImage: `url(${
                     !imageDelete
@@ -143,22 +143,18 @@ export default function ModalEditHogar({ clickClose, name, image, hogar_id }) {
                   </span>
                   <p className="mb-1 text-sm text-black-500">
                     <span className="font-semibold text-(--color-primary) group-hover:underline pr-1">
-                      Haz clic aquí
+                      Usa las opciones de abajo
                     </span>
                   </p>
                   <p className="text-xs text-black-400">
                     SVG, PNG, JPG (max. 2MB)
                   </p>
                 </div>
-              </label>
-
-              {/* INPUT REAL OCULTO, CONECTADO A RHF */}
-              <input
-                id="dropzone-file"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                {...register("file")}
+              </div>
+              <ImageSourceInputs
+                id="edit-home-image"
+                register={register}
+                setValue={setValue}
               />
             </div>
           </div>

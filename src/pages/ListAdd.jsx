@@ -21,6 +21,7 @@ import ButtonSecondary from "../components/Buttons/ButtonSecondary";
 import { IoArrowBack } from "react-icons/io5";
 import InputGeneral from "../components/Input/InputGeneral";
 import ModalGeneral from "../components/Modal/ModalGeneral";
+import { MdOutlineShoppingCartCheckout } from "react-icons/md";
 
 export default function ListAdd() {
   const queryClient = useQueryClient();
@@ -193,7 +194,17 @@ export default function ListAdd() {
             </span>
           }
         />
-        <h1 className="text-2xl font-bold text-gray-900">Editar lista</h1>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Editar lista</h1>
+          <ButtonGeneral
+            type="button"
+            className="flex items-center justify-center gap-2"
+            onClick={() => navigate(`/hogar/${hogar_id}/${list_id}/do`)}
+          >
+            <MdOutlineShoppingCartCheckout className="text-xl" />
+            Hacer la compra
+          </ButtonGeneral>
+        </div>
       </div>
 
       <form

@@ -25,6 +25,7 @@ import CardList from "../components/Cards/CardList";
 import ModalList from "../components/Modal/ModalList";
 import InputForm from "../components/Input/InputFind";
 import Pagination from "../components/Pagination/Pagination";
+import ImageSourceInputs from "../components/Input/ImageSourceInputs";
 
 export default function () {
   const navigate = useNavigate();
@@ -360,23 +361,13 @@ export default function () {
                   })`,
                 }}
               >
-                <input
-                  type="file"
-                  id="file"
-                  className="w-full h-full rounded-full hidden"
-                  name="file"
-                  {...register("file")}
-                />
-                <label
-                  htmlFor="file"
-                  className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-full flex justify-center items-center text-6xl"
-                >
+                <div className="w-full h-full bg-white/30 transition-all duration-300 absolute rounded-full flex justify-center items-center text-6xl">
                   {filePreview || dataHogar?.image ? (
                     <IoSyncOutline className="w-10" />
                   ) : (
                     "+"
                   )}
-                </label>
+                </div>
                 <button
                   onClick={() => {
                     setImageRemoved(true);
@@ -386,6 +377,12 @@ export default function () {
                   className="text-md bg-red-600 text-white px-3 py-3 rounded-full aspect-square w-auto absolute top-[-12px] right-[-12px]"
                 />
               </div>
+              <ImageSourceInputs
+                id="old-home-image"
+                register={register}
+                setValue={setValue}
+                className="justify-center"
+              />
               <InputGeneral
                 defaultValue={dataHogar?.name}
                 type="text"

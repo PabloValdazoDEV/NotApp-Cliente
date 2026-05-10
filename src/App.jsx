@@ -20,6 +20,8 @@ import RegisterSpecial from "./pages/RegisterSpecial";
 import Profile from "./pages/Profile";
 import ListDo from "./pages/ListDo";
 import ListAdd from "./pages/ListAdd";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CookiesPolicy from "./pages/CookiesPolicy";
 
 
 const PublicRoute = ({ element }) => {
@@ -47,6 +49,8 @@ function App() {
   return (
     <>
       <Routes>
+        <Route path="/privacidad" element={<PrivacyPolicy />} />
+        <Route path="/cookies" element={<CookiesPolicy />} />
         <Route path="/login" element={<PublicRoute element={<Login />} />} />
         <Route
           path={register}

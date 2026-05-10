@@ -11,6 +11,7 @@ import { IoMdClose } from "react-icons/io";
 import { FaCloudArrowUp } from "react-icons/fa6";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
 import { getProfile, updateProfile } from "../../api/profile";
+import ImageSourceInputs from "../Input/ImageSourceInputs";
 
 export default function ModalEditProfile({ clickClose }) {
   const queryClient = useQueryClient();
@@ -148,8 +149,7 @@ export default function ModalEditProfile({ clickClose }) {
               </label>
 
               {/* ZONA CLICABLE */}
-              <label
-                htmlFor="dropzone-file"
+              <div
                 style={{
                   backgroundImage: `url(${
                     !imageDelete
@@ -177,22 +177,18 @@ export default function ModalEditProfile({ clickClose }) {
                   </span>
                   <p className="mb-1 text-sm text-black-500">
                     <span className="font-semibold text-(--color-primary) group-hover:underline pr-1">
-                      Haz clic aquí
+                      Usa las opciones de abajo
                     </span>
                   </p>
                   <p className="text-xs text-black-400">
                     SVG, PNG, JPG (max. 2MB)
                   </p>
                 </div>
-              </label>
-
-              {/* INPUT REAL OCULTO, CONECTADO A RHF */}
-              <input
-                id="dropzone-file"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                {...register("file")}
+              </div>
+              <ImageSourceInputs
+                id="edit-profile-image"
+                register={register}
+                setValue={setValue}
               />
             </div>
           </div>

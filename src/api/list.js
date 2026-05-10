@@ -62,6 +62,9 @@ export const updateItemList = async (data) => {
     const body = {};
 
     if (data.quantity !== undefined) body.quantity = data.quantity;
+    if (data.purchased_quantity !== undefined) {
+      body.purchased_quantity = data.purchased_quantity;
+    }
     if (data.check_take !== undefined) body.check_take = data.check_take;
     if (data.status !== undefined) body.status = data.status;
     if (data.clientMutationId) body.clientMutationId = data.clientMutationId;

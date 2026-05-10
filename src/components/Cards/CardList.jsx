@@ -28,16 +28,42 @@ export default function CardList({ data, onListCreated }) {
 
   const outDate = `${dd}-${mm}-${yy}`;
   const itemsList = data.itemsList || [];
-  const totalItems = itemsList.length;
-  const foundItems = itemsList.filter(
-    (itemList) => getItemStatus(itemList) === "FOUND"
-  ).length;
-  const pendingItems = itemsList.filter(
-    (itemList) => getItemStatus(itemList) === "PENDING"
-  ).length;
-  const notFoundItems = itemsList.filter(
-    (itemList) => getItemStatus(itemList) === "NOT_FOUND"
-  ).length;
+  const totalItems = itemsList.reduce(
+    (total, itemList) => total + (itemList.quantity || 1),
+    0
+  );
+  const foundItems = itemsList.reduce((total, itemList) => {
+    const quantity = itemList.quantity || 1;
+    const purchasedQuantity = Math.min(
+      itemList.purchased_quantity || 0,
+      quantity
+    );
+    const status = getItemStatus(itemList);
+
+    if (status === "FOUND") return total + quantity;
+    if (status === "NOT_FOUND") return total + purchasedQuantity;
+    return total + purchasedQuantity;
+  }, 0);
+  const pendingItems = itemsList.reduce((total, itemList) => {
+    const quantity = itemList.quantity || 1;
+    const purchasedQuantity = Math.min(
+      itemList.purchased_quantity || 0,
+      quantity
+    );
+
+    if (getItemStatus(itemList) !== "PENDING") return total;
+    return total + Math.max(quantity - purchasedQuantity, 0);
+  }, 0);
+  const notFoundItems = itemsList.reduce((total, itemList) => {
+    const quantity = itemList.quantity || 1;
+    const purchasedQuantity = Math.min(
+      itemList.purchased_quantity || 0,
+      quantity
+    );
+
+    if (getItemStatus(itemList) !== "NOT_FOUND") return total;
+    return total + Math.max(quantity - purchasedQuantity, 0);
+  }, 0);
   const foundPercent = getPercent(foundItems, totalItems);
   const pendingPercent = getPercent(pendingItems, totalItems);
   const notFoundPercent = getPercent(notFoundItems, totalItems);
@@ -64,6 +90,7 @@ export default function CardList({ data, onListCreated }) {
         </div>
         <div className="col-span-4 grid grid-cols-2 gap-3">
           <ButtonGeneral
+          className="flex justify-center items-center"
             type="button"
             title="Editar lista"
             ariaLabel="Editar lista"
@@ -74,6 +101,7 @@ export default function CardList({ data, onListCreated }) {
           />
           <ButtonGeneral
             type="button"
+            className="flex justify-center items-center"
             title="Hacer la compra"
             ariaLabel="Hacer la compra"
             children={

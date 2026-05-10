@@ -9,6 +9,7 @@ import { user } from "../store/userAtom";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import ImageSourceInputs from "../components/Input/ImageSourceInputs";
 
 export default function CreateHogar() {
   const userData = useAtomValue(user);
@@ -20,6 +21,7 @@ export default function CreateHogar() {
     register,
     formState: { errors },
     watch,
+    setValue,
   } = useForm();
 
   const mutation = useMutation({
@@ -57,20 +59,16 @@ export default function CreateHogar() {
             backgroundImage: `url(${filePreview ? filePreview : "/IMG.jpg"})`,
           }}
         >
-          <input
-            type="file"
-            id="file"
-            className="w-full h-full rounded-full hidden"
-            name="file"
-            {...register("file")}
-          />
-          <label
-            htmlFor="file"
-            className="w-full h-full bg-white/30 hover:bg-[color:var(--color-primary)]/50 transition-all duration-300 absolute rounded-full flex justify-center items-center text-6xl"
-          >
+          <div className="w-full h-full bg-white/30 transition-all duration-300 absolute rounded-full flex justify-center items-center text-4xl">
             +
-          </label>
+          </div>
         </div>
+        <ImageSourceInputs
+          id="create-home-page-image"
+          register={register}
+          setValue={setValue}
+          className="justify-center"
+        />
         {errors.name && (
           <p className="text-red-500 text-xs">El nombre es obligatorio</p>
         )}

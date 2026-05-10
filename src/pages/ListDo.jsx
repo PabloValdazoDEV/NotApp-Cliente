@@ -12,22 +12,9 @@ import { IoArrowBack } from "react-icons/io5";
 import { FaSlidersH } from "react-icons/fa";
 import SelectSupermarket from "../components/Input/SelectSupermarket";
 import { SUPERMARKET_LABELS } from "../constants/supermarkets";
+import { CATEGORY_LABELS } from "../constants/categories";
 
 const PENDING_ACTIONS_KEY = "notapp:listdo:pending-actions";
-const CATEGORY_OPTIONS = {
-  FRUTAS_VERDURAS: "Frutas y verduras",
-  LACTEOS: "Lácteos",
-  CARNE: "Carne",
-  PESCADO: "Pescado",
-  BEBIDAS: "Bebidas",
-  PANADERIA: "Panadería",
-  DULCES: "Dulces",
-  CONGELADOS: "Congelados",
-  HIGIENE: "Higiene",
-  LIMPIEZA: "Limpieza",
-  MASCOTAS: "Mascotas",
-  OTROS: "Otros",
-};
 const ITEM_STATUSES = {
   PENDING: "PENDING",
   FOUND: "FOUND",
@@ -107,6 +94,27 @@ const groupBySupermarket = (items) => {
       (a, b) =>
         b.items.length - a.items.length || a.label.localeCompare(b.label)
     );
+};
+
+const getPurchasedState = (purchasedQuantity, quantity, statusOverride) => {
+  if (purchasedQuantity >= quantity) {
+    return {
+      status: ITEM_STATUSES.FOUND,
+      check_take: true,
+    };
+  }
+
+  if (statusOverride === ITEM_STATUSES.NOT_FOUND) {
+    return {
+      status: ITEM_STATUSES.NOT_FOUND,
+      check_take: false,
+    };
+  }
+
+  return {
+    status: ITEM_STATUSES.PENDING,
+    check_take: false,
+  };
 };
 
 export default function ListDo() {
@@ -224,6 +232,7 @@ export default function ListDo() {
     for (const action of pendingActions) {
       const response = await updateItemList({
         item_list_id: action.item_list_id,
+        purchased_quantity: action.purchased_quantity,
         status:
           action.status ||
           (action.check_take ? ITEM_STATUSES.FOUND : ITEM_STATUSES.PENDING),
@@ -261,11 +270,15 @@ export default function ListDo() {
   }, [flushPendingActions, socketConnected]);
 
   const handleStatusChange = (itemList, status) => {
+    const quantity = itemList.quantity || 1;
+    const purchasedQuantity =
+      status === ITEM_STATUSES.FOUND ? quantity : 0;
     const action = {
       type: "update-status",
       list_id,
       item_list_id: itemList.id,
       status,
+      purchased_quantity: purchasedQuantity,
       clientMutationId: createMutationId(),
       createdAt: Date.now(),
     };
@@ -273,7 +286,12 @@ export default function ListDo() {
     setItems((prev) =>
       prev.map((item) =>
         item.id === itemList.id
-          ? { ...item, status, check_take: status === ITEM_STATUSES.FOUND }
+          ? {
+              ...item,
+              status,
+              purchased_quantity: purchasedQuantity,
+              check_take: status === ITEM_STATUSES.FOUND,
+            }
           : item
       )
     );
@@ -282,6 +300,62 @@ export default function ListDo() {
       ...prev.filter((pendingAction) => pendingAction.item_list_id !== itemList.id),
       action,
     ]);
+  };
+
+  const handlePurchasedQuantityChange = (
+    itemList,
+    purchasedQuantity,
+    statusOverride
+  ) => {
+    const quantity = itemList.quantity || 1;
+    const nextPurchasedQuantity = Math.max(
+      0,
+      Math.min(quantity, purchasedQuantity)
+    );
+    const nextState = getPurchasedState(
+      nextPurchasedQuantity,
+      quantity,
+      statusOverride
+    );
+    const action = {
+      type: "update-purchased-quantity",
+      list_id,
+      item_list_id: itemList.id,
+      purchased_quantity: nextPurchasedQuantity,
+      status: nextState.status,
+      clientMutationId: createMutationId(),
+      createdAt: Date.now(),
+    };
+
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === itemList.id
+          ? {
+              ...item,
+              purchased_quantity: nextPurchasedQuantity,
+              status: nextState.status,
+              check_take: nextState.check_take,
+            }
+          : item
+      )
+    );
+
+    setPendingActions((prev) => [
+      ...prev.filter(
+        (pendingAction) => pendingAction.item_list_id !== itemList.id
+      ),
+      action,
+    ]);
+  };
+
+  const handleItemUpdated = (updatedItem) => {
+    setItems((prev) =>
+      prev.map((itemList) =>
+        itemList.item_id === updatedItem.id
+          ? { ...itemList, item: { ...itemList.item, ...updatedItem } }
+          : itemList
+      )
+    );
   };
 
   const filteredItems = useMemo(() => {
@@ -324,6 +398,8 @@ export default function ListDo() {
         key={item.id}
         pending={pendingActionIds.has(item.id)}
         onStatusChange={handleStatusChange}
+        onPurchasedQuantityChange={handlePurchasedQuantityChange}
+        onItemUpdated={handleItemUpdated}
       />
     ));
 
@@ -447,7 +523,7 @@ export default function ListDo() {
             className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-(--color-primary) focus:ring-1 focus:ring-(--color-primary) transition-colors outline-none text-base"
           >
             <option value="">Todas las categorías</option>
-            {Object.entries(CATEGORY_OPTIONS).map(([value, label]) => (
+            {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>

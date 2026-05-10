@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import { IoMdClose } from "react-icons/io";
 import { FaCloudArrowUp } from "react-icons/fa6";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
+import ImageSourceInputs from "../Input/ImageSourceInputs";
 
 export default function ModalItem({ onClickClosed, data }) {
   const queryClient = useQueryClient();
@@ -166,8 +167,7 @@ export default function ModalItem({ onClickClosed, data }) {
                     </ButtonSecondary>
                   )}
                 </div>
-                <label
-                  htmlFor="product-image-file"
+                <div
                   className="flex min-h-[180px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 bg-cover bg-center transition hover:border-(--color-primary) hover:bg-gray-100"
                   style={{
                     backgroundImage:
@@ -181,21 +181,19 @@ export default function ModalItem({ onClickClosed, data }) {
                   <div className="flex h-full w-full flex-col items-center justify-center rounded-xl bg-white/75 px-4 py-8 text-center">
                     <FaCloudArrowUp className="mb-3 text-4xl text-gray-500" />
                     <p className="text-sm font-medium text-gray-700">
-                      Haz clic para subir una imagen
+                      Añade o cambia la imagen
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
                       PNG, JPG o WEBP
                     </p>
                   </div>
-                  <input
-                    type="file"
-                    id="product-image-file"
-                    className="hidden"
-                    accept="image/*"
-                    name="file"
-                    {...register("file")}
-                  />
-                </label>
+                </div>
+                <ImageSourceInputs
+                  id="product-image"
+                  register={register}
+                  setValue={setValue}
+                  className="mt-3"
+                />
               </div>
 
               <div>

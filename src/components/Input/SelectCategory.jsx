@@ -1,19 +1,6 @@
-export default function SelectCategory({ value, onChange }) {
-  const CATEGORIES = {
-    FRUTAS_VERDURAS: "Frutas y verduras",
-    LACTEOS: "Lácteos",
-    CARNE: "Carne",
-    PESCADO: "Pescado",
-    BEBIDAS: "Bebidas",
-    PANADERIA: "Panadería",
-    DULCES: "Dulces",
-    CONGELADOS: "Congelados",
-    HIGIENE: "Higiene",
-    LIMPIEZA: "Limpieza",
-    MASCOTAS: "Mascotas",
-    OTROS: "Otros",
-  };
+import { CATEGORY_LABELS } from "../../constants/categories";
 
+export default function SelectCategory({ value, onChange }) {
   return (
     <div className="flex flex-col gap-1">
       <select
@@ -27,7 +14,7 @@ export default function SelectCategory({ value, onChange }) {
         <option value="0">
           Vacio
         </option>
-        {Object.entries(CATEGORIES).map(([key, label]) => (
+        {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
           <option key={key} value={key}>
             {label}
           </option>
