@@ -1,18 +1,25 @@
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
-import { useQuery } from "@tanstack/react-query";
-import { getAllHomesUser } from "../api/home";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  addHomeFavorite,
+  getAllHomesUser,
+  removeHomeFavorite,
+} from "../api/home";
 import { user } from "../store/userAtom";
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router";
 import { IoMdArrowForward } from "react-icons/io";
 import { FaUserGroup } from "react-icons/fa6";
+import { FaRegStar, FaStar } from "react-icons/fa";
 import { MdAddHome } from "react-icons/md";
 import ModalCreateHogar from "../components/Modal/ModalCreateHogar";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 
 export default function Home() {
   const user_value = useAtomValue(user);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [viewModalCreateHogar, setViewModalCreateHogar] = useState(false);
   import.meta.env.VITE_NAME_CLOUDINARY;
 
@@ -23,6 +30,53 @@ export default function Home() {
     },
   });
   // console.log(data);
+
+  const mutationFavoriteHome = useMutation({
+    mutationFn: ({ homeId, isFavorite }) =>
+      isFavorite ? removeHomeFavorite(homeId) : addHomeFavorite(homeId),
+    onMutate: async ({ homeId, isFavorite }) => {
+      const queryKey = ["homes", user_value.id];
+      await queryClient.cancelQueries({ queryKey });
+      const previousHomes = queryClient.getQueryData(queryKey);
+
+      queryClient.setQueryData(queryKey, (currentHomes) => {
+        if (!Array.isArray(currentHomes)) return currentHomes;
+
+        return currentHomes.map((home) =>
+          home.id === homeId ? { ...home, is_favorite: !isFavorite } : home
+        );
+      });
+
+      return { previousHomes };
+    },
+    onSuccess: (response) => {
+      if (response?.success === false) {
+        toast.error(response.message);
+      }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousHomes) {
+        queryClient.setQueryData(["homes", user_value.id], context.previousHomes);
+      }
+      toast.error("No se ha podido actualizar el favorito");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["homes", user_value.id] });
+    },
+  });
+
+  const sortedHomes = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+
+    return [...data].sort((a, b) => {
+      const aFavorite = a.is_favorite;
+      const bFavorite = b.is_favorite;
+
+      if (aFavorite !== bFavorite) return aFavorite ? -1 : 1;
+
+      return a.name.localeCompare(b.name);
+    });
+  }, [data]);
 
   return (
     <>
@@ -65,9 +119,12 @@ export default function Home() {
               <span className="truncate">Crear hogar</span>
             </button>
           </div>
-          {data && (
+          {sortedHomes.length > 0 && (
             <>
-              {data.map((home) => (
+              {sortedHomes.map((home) => {
+                const isFavorite = Boolean(home.is_favorite);
+
+                return (
                 <div
                   key={home.id}
                   className={`group flex flex-col bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer`}
@@ -76,6 +133,36 @@ export default function Home() {
                   }}
                 >
                   <div className="relative w-full max-h-40 aspect-auto bg-gray-200">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        mutationFavoriteHome.mutate({
+                          homeId: home.id,
+                          isFavorite,
+                        });
+                      }}
+                      className={`absolute left-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-lg shadow-sm backdrop-blur-sm transition hover:scale-105 ${
+                        isFavorite ? "text-yellow-500" : "text-gray-400"
+                      } ${
+                        mutationFavoriteHome.isPending
+                          ? "pointer-events-none opacity-70"
+                          : ""
+                      }`}
+                      disabled={mutationFavoriteHome.isPending}
+                      title={
+                        isFavorite
+                          ? "Quitar de favoritos"
+                          : "Marcar como favorito"
+                      }
+                      aria-label={
+                        isFavorite
+                          ? "Quitar de favoritos"
+                          : "Marcar como favorito"
+                      }
+                    >
+                      {isFavorite ? <FaStar /> : <FaRegStar />}
+                    </button>
                     {home.image && (
                       <img
                         className="w-full h-full object-cover"
@@ -137,7 +224,8 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </>
           )}
           {!data?.length && !isLoading && !error && (

@@ -37,6 +37,19 @@ export default function CardItemList({
         import.meta.env.VITE_NAME_CLOUDINARY
       }/image/upload/f_auto,q_auto,w_900/${product.image}`
     : "";
+  const foundQuantityLabel = `${purchasedQuantity} de ${quantity}`;
+  const statusButtonLabel = checked
+    ? "Todo comprado"
+    : notFound
+      ? "No encontrado"
+      : partial
+        ? foundQuantityLabel
+        : "Registrar";
+  const shoppingSummaryLabel = checked
+    ? "Todo comprado"
+    : notFound
+      ? "No encontrado"
+      : `Comprado: ${foundQuantityLabel}`;
 
   const mutationUploadImage = useMutation({
     mutationFn: updateItem,
@@ -154,11 +167,11 @@ return (
               "col-span-5"
             } `}
           >
-            Comprado: {purchasedQuantity}/{quantity}
+            {shoppingSummaryLabel}
           </p>
           {partial && (
             <p className="col-span-5 text-xs font-semibold text-amber-600">
-              No encontrado: {quantity - purchasedQuantity}
+              No encontrado: {quantity - purchasedQuantity} de {quantity}
             </p>
           )}
           {pending && (
@@ -186,8 +199,8 @@ return (
             ) : (
               <BiCartDownload className="text-2xl" />
             )}
-            <span className="mt-1 text-xs font-bold">
-              {checked || notFound || partial ? `${purchasedQuantity}/${quantity}` : "Registrar"}
+            <span className="mt-1 text-center text-[11px] font-bold leading-tight">
+              {statusButtonLabel}
             </span>
           </button>
         </div>
@@ -218,7 +231,7 @@ return (
                   {dataProv.item.name}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  El resto quedará como no encontrado.
+                  Indica cuántas unidades has encontrado.
                 </p>
               </div>
               <button
@@ -231,13 +244,13 @@ return (
               </button>
             </div>
             <div className="p-4">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {Array.from({ length: quantity + 1 }, (_, amount) => {
                   const label =
                     amount === 0
-                      ? "Nada"
+                      ? "No encontrado"
                       : amount === quantity
-                        ? "Todo"
+                        ? "Todo comprado"
                         : `${amount} de ${quantity}`;
 
                   return (
@@ -252,7 +265,7 @@ return (
                         );
                         setShowPartialModal(false);
                       }}
-                      className={`rounded-lg border px-3 py-3 text-base font-bold transition ${
+                      className={`min-h-14 rounded-lg border px-3 py-3 text-sm font-bold leading-tight transition ${
                         purchasedQuantity === amount
                           ? "border-(--color-primary) bg-(--color-primary) text-white"
                           : "border-gray-200 bg-white text-gray-800 hover:bg-gray-100"
@@ -404,30 +417,31 @@ if(type === "add"){
     <>
       <div className="grid grid-cols-10 gap-3 mb-5 border-b-1 pb-5 last:border-0 border-[var(--color-primary)]">
         {dataProv.item.image && (
-          <div className="col-span-3 row-span-2 ">
+          <div className="col-span-3 sm:col-span-2">
             <img
               src={`https://res.cloudinary.com/${
                 import.meta.env.VITE_NAME_CLOUDINARY
               }/image/upload/f_auto,q_auto,w_500/${dataProv.item.image}`}
+              alt={dataProv.item.name}
               className="h-auto aspect-square object-cover rounded-2xl"
             />
           </div>
         )}
 
         <div
-          className={`row-span-2  ${
-            dataProv.item.image ? "col-span-5" : "col-span-7"
+          className={`min-w-0 ${
+            dataProv.item.image ? "col-span-7 sm:col-span-8" : "col-span-10"
           }`}
         >
-          <h2>{dataProv.item.name}</h2>
-          <p>{dataProv.item.description}</p>
+          <h2 className="break-words text-lg font-semibold leading-tight text-gray-900">
+            {dataProv.item.name}
+          </h2>
+          <p className="mt-1 break-words text-sm leading-snug text-gray-600">
+            {dataProv.item.description || "Sin descripción."}
+          </p>
         </div>
-        <div
-          className={`row-span-2 flex flex-col gap-2 items-end ${
-            dataProv.item.image ? "col-span-2" : "col-span-3"
-          }`}
-        >
-          {dataProv.item.categories.map((category, index) => {
+        <div className="col-span-10 flex min-w-0 flex-wrap gap-2">
+          {dataProv.item.categories?.map((category, index) => {
             return <PillGenerical key={index} category={category} />;
           })}
            {dataProv.item.price && (

@@ -50,3 +50,29 @@ export const deleteHome = async (data) => {
     return { success: false, message: error.response.data.message };
   }
 };
+
+export const addHomeFavorite = async (homeId) => {
+  try {
+    const response = await api.post(`/home/${homeId}/favorite`);
+    return response.data;
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error.response?.data?.message || "Error al marcar el hogar como favorito",
+    };
+  }
+};
+
+export const removeHomeFavorite = async (homeId) => {
+  try {
+    const response = await api.delete(`/home/${homeId}/favorite`);
+    return response.data;
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error.response?.data?.message || "Error al quitar el hogar de favoritos",
+    };
+  }
+};
