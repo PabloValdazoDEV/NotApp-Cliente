@@ -15,12 +15,12 @@ import { FaCloudArrowUp } from "react-icons/fa6";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
 import ImageSourceInputs from "../Input/ImageSourceInputs";
 
-export default function ModalItem({ onClickClosed, data }) {
+export default function ModalItem({ onClickClosed, data, initialName = "", onCreated }) {
   const queryClient = useQueryClient();
   const [categories, setCategories] = useState({
-    first: data?.categories[0] || null,
-    second: data?.categories[1] || null,
-    third: data?.categories[2] || null,
+    first: data?.categories?.[0] || null,
+    second: data?.categories?.[1] || null,
+    third: data?.categories?.[2] || null,
   });
   const [supermarket, setSupermarket] = useState(
     data?.supermarket || "CUALQUIERA"
@@ -40,16 +40,30 @@ export default function ModalItem({ onClickClosed, data }) {
   } = useForm();
 
   useEffect(() => {
-    setValue("name", data?.name);
+    setValue("name", data?.name || initialName);
     setValue("price", data?.price);
     setValue("description", data?.description);
     setSupermarket(data?.supermarket || "CUALQUIERA");
-  }, [data?.description, data?.name, data?.price, data?.supermarket, setValue]);
+  }, [
+    data?.description,
+    data?.name,
+    data?.price,
+    data?.supermarket,
+    initialName,
+    setValue,
+  ]);
 
   const mutation = useMutation({
     mutationFn: postItem,
-    onSuccess: () => {
-      toast.success("Producto creado correctamente!");
+    onSuccess: (response) => {
+      if (response?.success === false) {
+        toast.error(response.message || "Error al crear el producto!");
+        setLoadingAnimation(false);
+        return;
+      }
+
+      toast.success(response?.message || "Producto creado correctamente!");
+      onCreated?.(response?.item);
       setLoadingAnimation(false);
       onClickClosed();
       queryClient.invalidateQueries();
@@ -107,7 +121,7 @@ export default function ModalItem({ onClickClosed, data }) {
       const formData = {
         ...dataFrom,
         hogar_id: hogar_id,
-        file: imageRemoved ? null : dataFrom?.file[0],
+        file: imageRemoved ? null : dataFrom?.file?.[0],
         categories: [categories.first, categories.second, categories.third],
         supermarket,
       };

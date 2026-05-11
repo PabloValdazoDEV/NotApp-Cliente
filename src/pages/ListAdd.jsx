@@ -12,7 +12,6 @@ import {
 import Pagination from "../components/Pagination/Pagination";
 import { useEffect, useState } from "react";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
-import ModalItem from "../components/Modal/ModalItem";
 import ModalItemAdd from "../components/Modal/ModalItemAdd";
 import InputForm from "../components/Input/InputFind";
 import { useForm } from "react-hook-form";
@@ -22,6 +21,7 @@ import { IoArrowBack } from "react-icons/io5";
 import InputGeneral from "../components/Input/InputGeneral";
 import ModalGeneral from "../components/Modal/ModalGeneral";
 import { MdOutlineShoppingCartCheckout } from "react-icons/md";
+import { getPaginatedRows } from "../utils/pagination";
 
 export default function ListAdd() {
   const queryClient = useQueryClient();
@@ -180,7 +180,9 @@ export default function ListAdd() {
   }
 
   // console.log(dataParamsMutateList)
-  const currentItems = dataParamsMutateList || dataList;
+  const paginationSource = dataParamsMutateList || dataList;
+  const currentItems = getPaginatedRows(paginationSource);
+  const currentItemsCount = currentItems.length;
 
   return (
     <div className="flex flex-col justify-center items-center gap-5">
@@ -271,17 +273,9 @@ export default function ListAdd() {
 
       <div
         className={`bottom-5 right-5 z-40 ${
-          dataParamsMutateList?.length || dataList?.length < 3
-            ? "static"
-            : "fixed"
-        } ${
-          dataParamsMutateList?.length || dataList?.length < 6
-            ? "md:static"
-            : "md:fixed"
-        } ${
-          dataParamsMutateList?.length || dataList?.length < 9
-            ? "lg:static"
-            : "lg:fixed"
+          currentItemsCount > 3 ? "fixed" : "static"
+        } ${currentItemsCount > 6 ? "md:fixed" : "md:static"} ${
+          currentItemsCount > 9 ? "lg:fixed" : "lg:static"
         }`}
       >
         <ButtonGeneral
@@ -304,7 +298,7 @@ export default function ListAdd() {
                   d="M12 6v12M6 12h12"
                 />
               </svg>
-              <span>Añadir un Producto</span>
+              <span>Añadir otro producto</span>
             </>
           }
         />
@@ -313,7 +307,7 @@ export default function ListAdd() {
       <Pagination
         elementParams={elementParams}
         setElementParams={setElementParams}
-        dataParamsMutate={dataParamsMutateList}
+        dataParamsMutate={paginationSource}
       />
       {modalCreateItem && (
         <ModalItemAdd

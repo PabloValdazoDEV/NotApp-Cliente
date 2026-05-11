@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHome, deleteHome } from "../api/home";
 import { IoArrowBack } from "react-icons/io5";
-import { deleteMember } from "../api/member";
+import { deleteMember, updateMember } from "../api/member";
 import { useAtomValue } from "jotai";
 import { user } from "../store/userAtom";
 import ButtonGeneral from "../components/Buttons/ButtonGeneral";
@@ -23,6 +23,7 @@ import ButtonSecondary from "../components/Buttons/ButtonSecondary";
 import ModalEditHogar from "../components/Modal/ModalEditHogar";
 import HogarMembers from "./HogarMembers";
 import ModalImportItems from "../components/Modal/ModalImportItems";
+import { getPaginatedRows } from "../utils/pagination";
 
 const getListStatus = (list) => {
   const itemsList = list.itemsList || [];
@@ -74,6 +75,7 @@ export default function Hogar() {
   const [dataEdit, setDataEdit] = useState({});
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [newOwnerMemberId, setNewOwnerMemberId] = useState("");
   const [active, setActive] = useState({
     hogar: false,
     productos: elementParams.element === "productos" ? true : false,
@@ -114,6 +116,43 @@ export default function Hogar() {
         toast.success(data.message);
       }
       queryClient.invalidateQueries();
+    },
+  });
+
+  const mutationTransferOwner = useMutation({
+    mutationFn: async (memberId) => {
+      const myMember = dataHogar?.members?.find(
+        (member) => member.user_id === userContext.id
+      );
+
+      if (!myMember?.id) {
+        return { success: false, message: "No se ha podido encontrar tu usuario en el hogar" };
+      }
+
+      const updateResponse = await updateMember({
+        id: memberId,
+        role: "OWNER",
+      });
+
+      if (updateResponse?.success === false) return updateResponse;
+
+      const deleteResponse = await deleteMember(myMember.id);
+      if (deleteResponse?.success === false) return deleteResponse;
+
+      return {
+        success: true,
+        message: "Se ha cambiado el propietario y has salido del hogar",
+      };
+    },
+    onSuccess: (data) => {
+      if (data?.success === false) {
+        toast.error(data.message);
+        return;
+      }
+
+      toast.success(data?.message || "Has salido del hogar");
+      queryClient.invalidateQueries();
+      navigate("/");
     },
   });
 
@@ -230,6 +269,13 @@ export default function Hogar() {
   if (error) {
     navigate(-1);
   }
+
+  const itemRows = getPaginatedRows(dataParamsMutateItem);
+  const listRows = getPaginatedRows(dataParamsMutateList);
+  const otherMembers =
+    dataHogar?.members?.filter((member) => member.user_id !== userContext.id) ||
+    [];
+  const selectedNewOwnerMemberId = newOwnerMemberId || otherMembers[0]?.id || "";
 
   return (
     <>
@@ -456,7 +502,7 @@ export default function Hogar() {
               {...register("nameFindItemMobile")}
             />
             <div className="grid md:grid-cols-2 md:gap-10">
-              {dataParamsMutateItem?.map((item, i) => {
+              {itemRows.map((item, i) => {
                 return (
                   <CardItem
                     key={i}
@@ -472,10 +518,10 @@ export default function Hogar() {
             </div>
             <div
               className={`bottom-5 right-5 z-40 ${
-                dataParamsMutateItem?.length < 3 ? "static" : "fixed"
-              } ${
-                dataParamsMutateItem?.length < 6 ? "md:static" : "md:fixed"
-              } ${dataParamsMutateItem?.length < 9 ? "lg:static" : "lg:fixed"}`}
+                itemRows.length < 3 ? "static" : "fixed"
+              } ${itemRows.length < 6 ? "md:static" : "md:fixed"} ${
+                itemRows.length < 9 ? "lg:static" : "lg:fixed"
+              }`}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 {(isOwner || isAdmin) && (
@@ -535,7 +581,7 @@ export default function Hogar() {
               {...register("titleFindListMobile")}
             />
             <div className="grid md:grid-cols-2 md:gap-10 gap-5">
-              {sortListsForHome(dataParamsMutateList)?.map((item) => {
+              {sortListsForHome(listRows).map((item) => {
                 return (
                   <CardList
                     key={item.id}
@@ -554,11 +600,9 @@ export default function Hogar() {
             </div>
             <div
               className={`bottom-5 right-5 z-40 ${
-                dataParamsMutateList?.length < 3 ? "static" : "fixed"
-              } ${
-                dataParamsMutateList?.length < 9 ? "md:static" : "md:fixed"
-              } ${
-                dataParamsMutateList?.length < 12 ? "lg:static" : "lg:fixed"
+                listRows.length < 3 ? "static" : "fixed"
+              } ${listRows.length < 9 ? "md:static" : "md:fixed"} ${
+                listRows.length < 12 ? "lg:static" : "lg:fixed"
               }`}
             >
               <ButtonGeneral
@@ -633,18 +677,87 @@ export default function Hogar() {
           />
         )}
         {modalDeleteHogar && (
-          <ModalGeneral
-            titulo={`Borrar el hogar ${dataHogar?.name}`}
-            text="Se borran todos las listas y los demas miembre no podran acceder nunca mas, se perderan todos los datos."
-            textBtnGreen="Cancelar"
-            textBtnRed="Borrar"
-            onClickGreen={() => {
-              setModalDeleteHogar(false);
-            }}
-            onClickRed={() => {
-              onSubmitDteleteHogar();
-            }}
-          />
+          <>
+            {isOwner && otherMembers.length > 0 ? (
+              <div className="fixed inset-0 bg-[color:var(--color-primary)]/10 backdrop-blur-sm z-60 flex items-center justify-center px-4">
+                <div className="w-full max-w-md bg-[color:var(--color-background-object)] rounded-lg shadow-lg p-6 flex flex-col gap-5">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold">
+                      ¿Qué quieres hacer con {dataHogar?.name}?
+                    </h2>
+                    <p className="mt-2 text-sm text-gray-600">
+                      Puedes borrar el hogar para todos o hacer propietario a
+                      otra persona y salir tú del hogar.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Nuevo propietario
+                    </label>
+                    <select
+                      value={selectedNewOwnerMemberId}
+                      onChange={(event) => setNewOwnerMemberId(event.target.value)}
+                      className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 text-gray-900 outline-none focus:border-(--color-primary) focus:ring-1 focus:ring-(--color-primary)"
+                    >
+                      {otherMembers.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.user.name} - {member.user.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+                    <ButtonSecondary
+                      type="button"
+                      onClick={() => {
+                        setModalDeleteHogar(false);
+                        setNewOwnerMemberId("");
+                      }}
+                    >
+                      Cancelar
+                    </ButtonSecondary>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <ButtonGeneral
+                        type="button"
+                        className="bg-red-500 hover:bg-red-600"
+                        onClick={() => {
+                          onSubmitDteleteHogar();
+                        }}
+                      >
+                        Borrar hogar
+                      </ButtonGeneral>
+                      <ButtonGeneral
+                        type="button"
+                        loading={mutationTransferOwner.isPending}
+                        onClick={() => {
+                          mutationTransferOwner.mutate(
+                            selectedNewOwnerMemberId
+                          );
+                        }}
+                      >
+                        Hacer propietario y salir
+                      </ButtonGeneral>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <ModalGeneral
+                titulo={`Borrar el hogar ${dataHogar?.name}`}
+                text="Se borran todos las listas y los demas miembros no podran acceder nunca mas, se perderan todos los datos."
+                textBtnGreen="Cancelar"
+                textBtnRed="Borrar"
+                onClickGreen={() => {
+                  setModalDeleteHogar(false);
+                }}
+                onClickRed={() => {
+                  onSubmitDteleteHogar();
+                }}
+              />
+            )}
+          </>
         )}
         {modalMember && (
           <ModalGeneral

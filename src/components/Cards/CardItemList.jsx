@@ -62,6 +62,20 @@ export default function CardItemList({
       return;
     }
 
+    const connection =
+      navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isBadConnection =
+      !navigator.onLine ||
+      connection?.saveData ||
+      ["slow-2g", "2g"].includes(connection?.effectiveType);
+
+    if (isBadConnection) {
+      toast.error(
+        "La conexión parece mala. No recomendamos subir imágenes ahora mismo."
+      );
+      return;
+    }
+
     mutationUploadImage.mutate({
       item_id: product.id,
       name: product.name,

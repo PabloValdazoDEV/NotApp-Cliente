@@ -10,6 +10,7 @@ export default function Navbar() {
   const fetchUserContext = useSetAtom(fetchUser);
   const userContext = useAtomValue(user);
   const [isOpen, setIsOpen] = useState(false);
+  const invitationsCount = userContext?.invitations?.length || 0;
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
@@ -18,19 +19,14 @@ export default function Navbar() {
       <nav className="bg-[color:var(--color-background-object)] shadow-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center ">
           <Link
-            to="/profile"
-            className="text-2xl font-bold text-[color:var(--color-primary)] "
+            to="/"
+            className="text-2xl font-bold text-[color:var(--color-primary)]"
+            aria-label="Ir a Mis Hogares"
           >
             <img
-              src={`${
-                userContext.image
-                  ? `https://res.cloudinary.com/${
-                      import.meta.env.VITE_NAME_CLOUDINARY
-                    }/image/upload/f_auto,q_auto,w_500/${userContext.image}`
-                  : "/Avatar.png"
-              }`}
-              alt="Avatar"
-              className="w-15 rounded-full aspect-square object-cover"
+              src="/LogoNotApp.png"
+              alt="NotApp"
+              className="h-12 w-auto object-contain"
             />
           </Link>
 
@@ -53,9 +49,9 @@ export default function Navbar() {
               className="text-[color:var(--color-text)] hover:text-[color:var(--color-primary)] no-underline relative"
             >
              Mis Invitaciones
-                {userContext?.invitations.length !== 0 && (
+                {invitationsCount !== 0 && (
                   <span className=" top-[-5px] right-[-20px] absolute bg-[color:var(--color-primary)] rounded-full aspect-square w-5 h-5 text-xs flex flex-col justify-center items-center text-white">
-                    {userContext?.invitations.length}
+                    {invitationsCount}
                   </span>
                 )}
             </Link>
@@ -76,9 +72,9 @@ export default function Navbar() {
             onClick={toggleMenu}
             className="md:hidden text-[color:var(--color-text)] focus:outline-none relative"
           >
-            {userContext?.invitations.length !== 0 && (
+            {invitationsCount !== 0 && (
                   <span className="top-0 right-[-5px] absolute bg-[color:var(--color-primary)] rounded-full aspect-square w-5 h-5 text-xs flex flex-col justify-center items-center text-white">
-                    {userContext?.invitations.length}
+                    {invitationsCount}
                   </span>
                 )}
             <svg
@@ -133,9 +129,9 @@ export default function Navbar() {
                 className="block text-[color:var(--color-text)] text-lg hover:text-[color:var(--color-primary)] no-underline relative"
               >
                 Mis Invitaciones
-                {userContext?.invitations.length !== 0 && (
+                {invitationsCount !== 0 && (
                   <span className="top-[-5px] right-[-20px] absolute bg-[color:var(--color-primary)] rounded-full aspect-square w-5 h-5 text-xs flex flex-col justify-center items-center text-white">
-                    {userContext?.invitations.length}
+                    {invitationsCount}
                   </span>
                 )}
               </Link>

@@ -26,6 +26,7 @@ import ModalList from "../components/Modal/ModalList";
 import InputForm from "../components/Input/InputFind";
 import Pagination from "../components/Pagination/Pagination";
 import ImageSourceInputs from "../components/Input/ImageSourceInputs";
+import { getPaginatedRows } from "../utils/pagination";
 
 export default function () {
   const navigate = useNavigate();
@@ -241,6 +242,9 @@ export default function () {
   const onSubmitInviteHogar = (data) => {
     mutationInivteHogar.mutate({ ...data, id: hogar_id });
   };
+
+  const itemRows = getPaginatedRows(dataParamsMutateItem);
+  const listRows = getPaginatedRows(dataParamsMutateList);
 
   return (
     <>
@@ -467,7 +471,7 @@ export default function () {
               {...register("nameFindItemMobile")}
             />
             <div className="grid md:grid-cols-2 md:gap-10">
-              {dataParamsMutateItem?.map((item, i) => {
+              {itemRows.map((item, i) => {
                 return (
                   <CardItem
                     key={i}
@@ -483,10 +487,10 @@ export default function () {
             </div>
             <div
               className={`bottom-5 right-5 z-40 ${
-                dataParamsMutateItem?.length < 3 ? "static" : "fixed"
-              } ${
-                dataParamsMutateItem?.length < 6 ? "md:static" : "md:fixed"
-              } ${dataParamsMutateItem?.length < 9 ? "lg:static" : "lg:fixed"}`}
+                itemRows.length < 3 ? "static" : "fixed"
+              } ${itemRows.length < 6 ? "md:static" : "md:fixed"} ${
+                itemRows.length < 9 ? "lg:static" : "lg:fixed"
+              }`}
             >
               <ButtonGeneral
                 className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
@@ -534,7 +538,7 @@ export default function () {
               {...register("titleFindListMobile")}
             />
             <div className="grid md:grid-cols-2 md:gap-10 gap-5">
-              {dataParamsMutateList?.map((item, i) => {
+              {listRows.map((item, i) => {
                 return (
                   <CardList
                     key={i}
@@ -550,11 +554,9 @@ export default function () {
             </div>
             <div
               className={`bottom-5 right-5 z-40 ${
-                dataParamsMutateList?.length < 3 ? "static" : "fixed"
-              } ${
-                dataParamsMutateList?.length < 9 ? "md:static" : "md:fixed"
-              } ${
-                dataParamsMutateList?.length < 12 ? "lg:static" : "lg:fixed"
+                listRows.length < 3 ? "static" : "fixed"
+              } ${listRows.length < 9 ? "md:static" : "md:fixed"} ${
+                listRows.length < 12 ? "lg:static" : "lg:fixed"
               }`}
             >
               <ButtonGeneral

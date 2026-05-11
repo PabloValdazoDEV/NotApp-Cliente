@@ -11,7 +11,6 @@ import ButtonSecondary from "../components/Buttons/ButtonSecondary";
 import { IoArrowBack } from "react-icons/io5";
 import { FaSlidersH } from "react-icons/fa";
 import SelectSupermarket from "../components/Input/SelectSupermarket";
-import { SUPERMARKET_LABELS } from "../constants/supermarkets";
 import { CATEGORY_LABELS } from "../constants/categories";
 
 const PENDING_ACTIONS_KEY = "notapp:listdo:pending-actions";
@@ -68,33 +67,32 @@ const upsertItemList = (items, itemList) => {
   return nextItems.sort((a, b) => a.item.name.localeCompare(b.item.name));
 };
 
-const getItemSupermarket = (itemList) => itemList.item.supermarket || "CUALQUIERA";
+const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS);
 
-const getSupermarketLabel = (supermarket) =>
-  SUPERMARKET_LABELS[supermarket] || supermarket;
+const getItemSupermarket = (itemList) =>
+  itemList.item.supermarket || "CUALQUIERA";
 
 const getItemStatus = (item) =>
   item.status || (item.check_take ? ITEM_STATUSES.FOUND : ITEM_STATUSES.PENDING);
 
-const groupBySupermarket = (items) => {
-  const groups = items.reduce((acc, item) => {
-    const supermarket = getItemSupermarket(item);
-    const currentItems = acc.get(supermarket) || [];
-    acc.set(supermarket, [...currentItems, item]);
-    return acc;
-  }, new Map());
-
-  return Array.from(groups.entries())
-    .map(([supermarket, supermarketItems]) => ({
-      supermarket,
-      label: getSupermarketLabel(supermarket),
-      items: supermarketItems,
-    }))
-    .sort(
-      (a, b) =>
-        b.items.length - a.items.length || a.label.localeCompare(b.label)
-    );
+const getPrimaryCategoryIndex = (itemList) => {
+  const category = itemList.item.categories?.[0] || "OTROS";
+  const index = CATEGORY_ORDER.indexOf(category);
+  return index === -1 ? CATEGORY_ORDER.length : index;
 };
+
+const sortItemsForShopping = (items, sortMode) =>
+  [...items].sort((a, b) => {
+    if (sortMode === "category") {
+      return (
+        getPrimaryCategoryIndex(a) - getPrimaryCategoryIndex(b) ||
+        a.item.name.localeCompare(b.item.name)
+      );
+    }
+
+    const result = a.item.name.localeCompare(b.item.name);
+    return sortMode === "asc" ? result : -result;
+  });
 
 const getPurchasedState = (purchasedQuantity, quantity, statusOverride) => {
   if (purchasedQuantity >= quantity) {
@@ -126,7 +124,7 @@ export default function ListDo() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [supermarket, setSupermarket] = useState("");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortMode, setSortMode] = useState("category");
   const [showFilters, setShowFilters] = useState(false);
   const [pendingActions, setPendingActions] = useState(() =>
     readPendingActions().filter((action) => action.list_id === list_id)
@@ -374,10 +372,17 @@ export default function ListDo() {
         return matchesSearch && matchesCategory && matchesSupermarket;
       })
       .sort((a, b) => {
+        if (sortMode === "category") {
+          return (
+            getPrimaryCategoryIndex(a) - getPrimaryCategoryIndex(b) ||
+            a.item.name.localeCompare(b.item.name)
+          );
+        }
+
         const result = a.item.name.localeCompare(b.item.name);
-        return sortOrder === "asc" ? result : -result;
+        return sortMode === "asc" ? result : -result;
       });
-  }, [category, items, search, sortOrder, supermarket]);
+  }, [category, items, search, sortMode, supermarket]);
 
   const pendingItems = filteredItems.filter(
     (item) => getItemStatus(item) === ITEM_STATUSES.PENDING
@@ -388,10 +393,8 @@ export default function ListDo() {
   const notFoundItems = filteredItems.filter(
     (item) => getItemStatus(item) === ITEM_STATUSES.NOT_FOUND
   );
-  const shouldGroupBySupermarket = !supermarket;
-
   const renderCards = (sectionItems) =>
-    sectionItems.map((item) => (
+    sortItemsForShopping(sectionItems, sortMode).map((item) => (
       <CardItemList
         dataProv={item}
         type="do"
@@ -414,37 +417,6 @@ export default function ListDo() {
       </section>
     );
   };
-
-  const renderSupermarketGroups = () =>
-    groupBySupermarket(filteredItems).map((group) => {
-      const groupPendingItems = group.items.filter(
-        (item) => getItemStatus(item) === ITEM_STATUSES.PENDING
-      );
-      const groupCheckedItems = group.items.filter(
-        (item) => getItemStatus(item) === ITEM_STATUSES.FOUND
-      );
-      const groupNotFoundItems = group.items.filter(
-        (item) => getItemStatus(item) === ITEM_STATUSES.NOT_FOUND
-      );
-
-      return (
-        <section key={group.supermarket} className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-2">
-            <h2 className="text-lg font-bold text-gray-900">{group.label}</h2>
-            <span className="rounded-md bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
-              {group.items.length} productos
-            </span>
-          </div>
-          {renderStatusBlock("Pendientes", groupPendingItems, "h3")}
-          {renderStatusBlock("Comprados", groupCheckedItems, "h3")}
-          {renderStatusBlock(
-            "Productos no encontrados",
-            groupNotFoundItems,
-            "h3"
-          )}
-        </section>
-      );
-    });
 
   if (isLoading && items.length === 0) {
     return <p className="text-center">Cargando...</p>;
@@ -535,10 +507,11 @@ export default function ListDo() {
             includeAll
           />
           <select
-            value={sortOrder}
-            onChange={(event) => setSortOrder(event.target.value)}
+            value={sortMode}
+            onChange={(event) => setSortMode(event.target.value)}
             className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-(--color-primary) focus:ring-1 focus:ring-(--color-primary) transition-colors outline-none text-base"
           >
+            <option value="category">Categorías</option>
             <option value="asc">A-Z</option>
             <option value="desc">Z-A</option>
           </select>
@@ -553,15 +526,9 @@ export default function ListDo() {
         <p className="text-center">No hay productos con esos filtros.</p>
       )}
 
-      {shouldGroupBySupermarket ? (
-        <div className="flex flex-col gap-6">{renderSupermarketGroups()}</div>
-      ) : (
-        <>
-          {renderStatusBlock("Pendientes", pendingItems)}
-          {renderStatusBlock("Comprados", checkedItems)}
-          {renderStatusBlock("Productos no encontrados", notFoundItems)}
-        </>
-      )}
+      {renderStatusBlock("Faltan", pendingItems)}
+      {renderStatusBlock("Productos no encontrados", notFoundItems)}
+      {renderStatusBlock("Comprados", checkedItems)}
     </div>
   );
 }
