@@ -67,6 +67,7 @@ export default function CardList({ data, onListCreated }) {
   const foundPercent = getPercent(foundItems, totalItems);
   const pendingPercent = getPercent(pendingItems, totalItems);
   const notFoundPercent = getPercent(notFoundItems, totalItems);
+  const isComplete = totalItems > 0 && pendingItems === 0;
   const canCreateFromNotFound = notFoundItems > 0 && pendingItems === 0;
 
   const mutationCreateFromNotFound = useMutation({
@@ -132,17 +133,19 @@ export default function CardList({ data, onListCreated }) {
               </div>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
-            <span className="rounded-md bg-green-50 px-2 py-1 text-green-700">
-              Comprados: {foundItems}/{totalItems} ({foundPercent}%)
-            </span>
-            <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-700">
-              Faltan: {pendingItems}/{totalItems} ({pendingPercent}%)
-            </span>
-            <span className="rounded-md bg-red-50 px-2 py-1 text-red-700">
-              No encontrados: {notFoundItems}/{totalItems} ({notFoundPercent}%)
-            </span>
-          </div>
+          {!isComplete && (
+            <div className="grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
+              <span className="rounded-md bg-green-50 px-2 py-1 text-green-700">
+                Comprados: {foundItems}/{totalItems} ({foundPercent}%)
+              </span>
+              <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-700">
+                Faltan: {pendingItems}/{totalItems} ({pendingPercent}%)
+              </span>
+              <span className="rounded-md bg-red-50 px-2 py-1 text-red-700">
+                No encontrados: {notFoundItems}/{totalItems} ({notFoundPercent}%)
+              </span>
+            </div>
+          )}
           {totalItems === 0 && (
             <p className="text-xs text-gray-500">Esta lista no tiene productos.</p>
           )}

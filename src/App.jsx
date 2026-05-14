@@ -66,6 +66,7 @@ function App() {
         />
         <Route path="/" element={<PrivateRoute element={<Layout />} />}>
           <Route index element={<Home />} />
+          <Route path="home" element={<Home />} />
           <Route path="crear-hogar" element={<CreateHogar />} />
           <Route path="hogar/:hogar_id" element={<Hogar />} />
           <Route path="hogar2/:hogar_id" element={<HogarV1 />} />

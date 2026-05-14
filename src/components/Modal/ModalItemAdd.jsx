@@ -28,6 +28,7 @@ export default function ModalItemAdd({
   });
   const [quantities, setQuantities] = useState({});
   const [modalCreateProduct, setModalCreateProduct] = useState(false);
+  const [addedItemIds, setAddedItemIds] = useState([]);
 
   const { handleSubmit, register, reset } = useForm();
 
@@ -61,11 +62,17 @@ export default function ModalItemAdd({
 
   const mutationAddItem = useMutation({
     mutationFn: addItemToList,
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       if (data.success === false) {
         toast.error(data.message);
       } else {
         toast.success(data.message || "Producto añadido correctamente");
+        const addedItemId = data?.item?.id || data?.item_id || variables?.item_id;
+        if (addedItemId) {
+          setAddedItemIds((prev) => [
+            ...new Set([...prev, addedItemId]),
+          ]);
+        }
         onItemAdded?.();
       }
     },
@@ -76,12 +83,13 @@ export default function ModalItemAdd({
   }, [error]);
 
   const itemRows = getPaginatedRows(items);
+  const hiddenItemIds = new Set([...existingItemIds, ...addedItemIds]);
 
   const availableItems = itemRows.filter(
-    (item) => !existingItemIds.includes(item.id)
+    (item) => !hiddenItemIds.has(item.id)
   );
   const searchName = itemParams.name.trim();
-  const canCreateSearchedProduct = !isLoading && searchName.length > 0;
+  const canCreateSearchedProduct = !isLoading;
 
   const addCreatedProductToList = (item) => {
     if (!item?.id) return;
@@ -227,7 +235,9 @@ export default function ModalItemAdd({
                 className="w-full"
                 onClick={() => setModalCreateProduct(true)}
               >
-                Crear &quot;{searchName}&quot; y añadirlo
+                {searchName
+                  ? `Crear "${searchName}" y añadirlo`
+                  : "Crear y añadir"}
               </ButtonGeneral>
             </div>
           )}

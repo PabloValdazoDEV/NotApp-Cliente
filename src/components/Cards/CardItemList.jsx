@@ -1,6 +1,7 @@
 import { BiCartDownload } from "react-icons/bi";
 import PillGenerical from "../Pill/PillGenerical";
 import ButtonGeneral from "../Buttons/ButtonGeneral";
+import ButtonSecondary from "../Buttons/ButtonSecondary";
 import { LuSearchX } from "react-icons/lu";
 import { BsCartCheckFill } from "react-icons/bs";
 import { SUPERMARKET_LABELS } from "../../constants/supermarkets";
@@ -10,12 +11,15 @@ import { FaCamera, FaExpand } from "react-icons/fa6";
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { updateItem } from "../../api/item";
+import { MdOutlineEdit } from "react-icons/md";
 
 
 export default function CardItemList({
   dataProv,
   type,
   onDelete,
+  onEdit,
+  onImageClick,
   onQuantityChange,
   onPurchasedQuantityChange,
   onItemUpdated,
@@ -416,8 +420,14 @@ if(type === "add"){
   return (
     <>
       <div className="grid grid-cols-10 gap-3 mb-5 border-b-1 pb-5 last:border-0 border-[var(--color-primary)]">
-        {dataProv.item.image && (
-          <div className="col-span-3 sm:col-span-2">
+        {dataProv.item.image ? (
+          <button
+            type="button"
+            onClick={() => onImageClick?.(dataProv.item)}
+            className="group relative col-span-3 overflow-hidden rounded-2xl sm:col-span-2"
+            title="Editar imagen"
+            aria-label="Editar imagen del producto"
+          >
             <img
               src={`https://res.cloudinary.com/${
                 import.meta.env.VITE_NAME_CLOUDINARY
@@ -425,14 +435,23 @@ if(type === "add"){
               alt={dataProv.item.name}
               className="h-auto aspect-square object-cover rounded-2xl"
             />
-          </div>
+            <span className="absolute inset-0 hidden items-center justify-center bg-black/30 text-white group-hover:flex">
+              <FaExpand />
+            </span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onImageClick?.(dataProv.item)}
+            className="col-span-3 flex aspect-square items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 hover:border-(--color-primary) hover:text-(--color-primary) sm:col-span-2"
+            title="Añadir imagen"
+            aria-label="Añadir imagen del producto"
+          >
+            <FaCamera className="text-2xl" />
+          </button>
         )}
 
-        <div
-          className={`min-w-0 ${
-            dataProv.item.image ? "col-span-7 sm:col-span-8" : "col-span-10"
-          }`}
-        >
+        <div className="col-span-7 min-w-0 sm:col-span-8">
           <h2 className="break-words text-lg font-semibold leading-tight text-gray-900">
             {dataProv.item.name}
           </h2>
@@ -454,12 +473,23 @@ if(type === "add"){
           )}
         </div>
         <div className="col-span-10 row-span-1 flex justify-between items-center gap-3">
-          <ButtonGeneral
-            children="Borrar"
-            className="bg-red-600 hover:bg-red-600"
-            loading={loading}
-            onClick={() => onDelete?.(dataProv)}
-          />
+          <div className="flex gap-2">
+            <ButtonGeneral
+              children="Borrar"
+              className="bg-red-600 px-3 hover:bg-red-600"
+              loading={loading}
+              onClick={() => onDelete?.(dataProv)}
+            />
+            <ButtonSecondary
+              type="button"
+              className="px-3"
+              onClick={() => onEdit?.(dataProv.item)}
+            >
+              <span className="flex items-center gap-1">
+                <MdOutlineEdit /> Editar
+              </span>
+            </ButtonSecondary>
+          </div>
           <div className="flex flex-row gap-3 justify-center items-center">
             <ButtonGeneral
               children="-"

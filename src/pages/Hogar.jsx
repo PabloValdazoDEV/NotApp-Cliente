@@ -68,6 +68,7 @@ export default function Hogar() {
   const [modalDeleteHogar, setModalDeleteHogar] = useState(false);
   const [modalCreateItem, setModalCreateItem] = useState(false);
   const [modalEditItem, setModalEditItem] = useState(false);
+  const [modalEditItemImage, setModalEditItemImage] = useState(false);
   const [modalMember, setModalMember] = useState(false);
   const [modalCreateList, setModalCreateList] = useState(null);
   const [modalEditHogar, setModalEditHogar] = useState(false);
@@ -230,6 +231,7 @@ export default function Hogar() {
   const onSubmiFindItems = (data) => {
     setElementParams({
       ...elementParams,
+      page: 1,
       name: data.nameFindItemMobile || data.nameFindItem,
       element: "productos",
     });
@@ -237,20 +239,22 @@ export default function Hogar() {
   const onSubmiFindList = (data) => {
     setElementParams({
       ...elementParams,
+      page: 1,
       title: data.titleFindListMobile || data.titleFindList,
       element: "lista",
     });
   };
   const onSubmitClearParams = () => {
     if (elementParams.element == "lista") {
-      mutateFilterParamsList({
+      setElementParams({
         element: "lista",
         page: 1,
+        name: "",
         title: "",
         category: "",
       });
     } else {
-      mutateFilterParamsItem({
+      setElementParams({
         element: "productos",
         page: 1,
         name: "",
@@ -310,9 +314,7 @@ export default function Hogar() {
         {/* {console.log(dataHogar)} */}
         <div className="bg-white  rounded-xl shadow-sm border border-[#e5e7eb] overflow-hidden w-full relative">
           <Link
-            onClick={() => {
-              navigate(-1);
-            }}
+            to="/home"
             className=" no-underline text-white inline-flex mb-4 hover:scale-105 absolute top-5 left-5"
           >
             <IoArrowBack className="text-2xl mr-1 " /> Atras
@@ -512,6 +514,10 @@ export default function Hogar() {
                       setModalEditItem(true);
                       setDataEdit(item);
                     }}
+                    onImageClick={() => {
+                      setModalEditItemImage(true);
+                      setDataEdit(item);
+                    }}
                   />
                 );
               })}
@@ -659,6 +665,16 @@ export default function Hogar() {
           <ModalItem
             onClickClosed={() => {
               setModalEditItem(false);
+              mutateFilterParamsItem(elementParams);
+            }}
+            data={dataEdit}
+          />
+        )}
+        {modalEditItemImage && (
+          <ModalItem
+            imageOnly
+            onClickClosed={() => {
+              setModalEditItemImage(false);
               mutateFilterParamsItem(elementParams);
             }}
             data={dataEdit}

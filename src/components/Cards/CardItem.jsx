@@ -1,10 +1,10 @@
 import PillGenerical from "../Pill/PillGenerical";
 import { BiCartDownload } from "react-icons/bi";
 import { MdOutlineEdit } from "react-icons/md";
-import ModalItem from "../Modal/ModalItem";
 import { SUPERMARKET_LABELS } from "../../constants/supermarkets";
+import { FaCamera, FaExpand } from "react-icons/fa6";
 
-export default function CardItem({ data, active, editClick }) {
+export default function CardItem({ data, active, editClick, onImageClick }) {
   //   console.log(data);
   return (
     <>
@@ -17,17 +17,42 @@ export default function CardItem({ data, active, editClick }) {
           }`}
         >
           {data.image && (
-            <img
-              src={`https://res.cloudinary.com/${
-                import.meta.env.VITE_NAME_CLOUDINARY
-              }/image/upload/f_auto,q_auto,w_500/${data.image}`}
-              className="col-span-3 row-span-4 h-auto aspect-square object-cover rounded-2xl"
-            />
+            <button
+              type="button"
+              onClick={onImageClick}
+              className="group relative col-span-3 row-span-4 overflow-hidden rounded-2xl"
+              title="Editar imagen"
+              aria-label="Editar imagen del producto"
+            >
+              <img
+                src={`https://res.cloudinary.com/${
+                  import.meta.env.VITE_NAME_CLOUDINARY
+                }/image/upload/f_auto,q_auto,w_500/${data.image}`}
+                alt={data.name}
+                className="h-auto aspect-square object-cover rounded-2xl"
+              />
+              <span className="absolute inset-0 hidden items-center justify-center bg-black/30 text-white group-hover:flex">
+                <FaExpand />
+              </span>
+            </button>
+          )}
+          {!data.image && active.productos && (
+            <button
+              type="button"
+              onClick={onImageClick}
+              className="col-span-3 row-span-4 flex aspect-square items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-500 hover:border-(--color-primary) hover:text-(--color-primary)"
+              title="Añadir imagen"
+              aria-label="Añadir imagen del producto"
+            >
+              <FaCamera className="text-2xl" />
+            </button>
           )}
 
           <h2
             className={` text-sm  ${
-              data.image ? "col-span-5 row-span-2" : "col-span-8 row-span-1"
+              data.image || active.productos
+                ? "col-span-5 row-span-2"
+                : "col-span-8 row-span-1"
             } `}
           >
             {data.name}
@@ -35,7 +60,7 @@ export default function CardItem({ data, active, editClick }) {
 
           <p
             className={` text-xs row-span-2 ${
-              data.image ? "col-span-5" : "col-span-8"
+              data.image || active.productos ? "col-span-5" : "col-span-8"
             } `}
           >
             {data.description

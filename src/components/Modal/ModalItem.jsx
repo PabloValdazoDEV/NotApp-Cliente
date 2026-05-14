@@ -15,7 +15,13 @@ import { FaCloudArrowUp } from "react-icons/fa6";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
 import ImageSourceInputs from "../Input/ImageSourceInputs";
 
-export default function ModalItem({ onClickClosed, data, initialName = "", onCreated }) {
+export default function ModalItem({
+  onClickClosed,
+  data,
+  initialName = "",
+  onCreated,
+  imageOnly = false,
+}) {
   const queryClient = useQueryClient();
   const [categories, setCategories] = useState({
     first: data?.categories?.[0] || null,
@@ -107,12 +113,21 @@ export default function ModalItem({ onClickClosed, data, initialName = "", onCre
 
   const onSubmit = (dataFrom) => {
     if (data) {
+      const categoriesToSave = imageOnly
+        ? data.categories || []
+        : [categories.first, categories.second, categories.third];
       const formData = {
-        ...dataFrom,
+        ...(imageOnly
+          ? {
+              name: data.name,
+              price: data.price || "",
+              description: data.description || "",
+            }
+          : dataFrom),
         item_id: data.id,
         file: dataFrom?.file?.[0] ? dataFrom?.file?.[0] : null,
-        categories: [categories.first, categories.second, categories.third],
-        supermarket,
+        categories: categoriesToSave,
+        supermarket: imageOnly ? data.supermarket || "CUALQUIERA" : supermarket,
         imageDelete: imageRemoved,
       };
       setLoadingAnimation(true);
@@ -149,10 +164,16 @@ export default function ModalItem({ onClickClosed, data, initialName = "", onCre
             <div className="flex items-center justify-between border-b border-gray-100 p-5">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {data ? `Editar ${data?.name}` : "Crear producto"}
+                  {imageOnly
+                    ? `Editar foto de ${data?.name}`
+                    : data
+                      ? `Editar ${data?.name}`
+                      : "Crear producto"}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Imagen, datos básicos, categorías y supermercado.
+                  {imageOnly
+                    ? "Sube, cambia o borra la imagen del producto."
+                    : "Imagen, datos básicos, categorías y supermercado."}
                 </p>
               </div>
               <button
@@ -210,97 +231,107 @@ export default function ModalItem({ onClickClosed, data, initialName = "", onCre
                 />
               </div>
 
-              <div>
-                {errors.name && (
-                  <p className="mb-2 text-xs text-red-500">
-                    El nombre es obligatorio
-                  </p>
-                )}
-                <div className="grid grid-cols-6 gap-3">
-                  <InputGeneral
-                    placeholder="Nombre del producto"
-                    className="col-span-4"
-                    type="text"
-                    id="name"
-                    name="name"
-                    {...register("name", { required: true })}
-                  />
-                  <InputGeneral
-                    placeholder="€"
-                    className="col-span-2"
-                    type="number"
-                    id="price"
-                    name="price"
-                    {...register("price")}
-                    step="0.01"
-                  />
-                </div>
-              </div>
+              {!imageOnly && (
+                <>
+                  <div>
+                    {errors.name && (
+                      <p className="mb-2 text-xs text-red-500">
+                        El nombre es obligatorio
+                      </p>
+                    )}
+                    <div className="grid grid-cols-6 gap-3">
+                      <InputGeneral
+                        placeholder="Nombre del producto"
+                        className="col-span-4"
+                        type="text"
+                        id="name"
+                        name="name"
+                        {...register("name", { required: true })}
+                      />
+                      <InputGeneral
+                        placeholder="€"
+                        className="col-span-2"
+                        type="number"
+                        id="price"
+                        name="price"
+                        {...register("price")}
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
 
-              <textarea
-                placeholder="Descripción del producto"
-                className="min-h-24 w-full rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-700"
-                name="description"
-                {...register("description")}
-              />
-
-              <div className="flex flex-col gap-2">
-                <h4 className="text-sm font-semibold text-gray-700">
-                  Categorías
-                </h4>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <SelectCategory
-                    value={categories.first}
-                    onChange={(e) => {
-                      setCategories({ ...categories, first: e });
-                    }}
+                  <textarea
+                    placeholder="Descripción del producto"
+                    className="min-h-24 w-full rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-700"
+                    name="description"
+                    {...register("description")}
                   />
-                  <SelectCategory
-                    value={categories.second}
-                    onChange={(e) => {
-                      setCategories({ ...categories, second: e });
-                    }}
-                  />
-                </div>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <h4 className="text-sm font-semibold text-gray-700">
-                  Supermercado
-                </h4>
-                <SelectSupermarket
-                  value={supermarket}
-                  onChange={setSupermarket}
-                />
-              </div>
+                  <div className="flex flex-col gap-2">
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      Categorías
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <SelectCategory
+                        value={categories.first}
+                        onChange={(e) => {
+                          setCategories({ ...categories, first: e });
+                        }}
+                      />
+                      <SelectCategory
+                        value={categories.second}
+                        onChange={(e) => {
+                          setCategories({ ...categories, second: e });
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      Supermercado
+                    </h4>
+                    <SelectSupermarket
+                      value={supermarket}
+                      onChange={setSupermarket}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="flex flex-col-reverse gap-3 border-t border-gray-100 p-5 sm:flex-row sm:justify-between">
-              {data ? (
+            <div
+              className={`grid gap-3 border-t border-gray-100 p-5 ${
+                imageOnly ? "grid-cols-2" : data ? "grid-cols-3" : "grid-cols-2"
+              }`}
+            >
+              {data && !imageOnly ? (
                 <ButtonGeneral
                   type="button"
                   onClick={() => {
                     setModalDelete(true);
                   }}
-                  className="bg-red-500 text-white hover:bg-red-600"
+                  className="w-full bg-red-500 px-3 text-white hover:bg-red-600"
                 >
                   Borrar
                 </ButtonGeneral>
               ) : (
-                <span />
+                null
               )}
-              <div className="flex justify-end gap-3">
-                <ButtonSecondary type="button" onClick={onClickClosed}>
-                  Cancelar
-                </ButtonSecondary>
-                <ButtonGeneral
-                  loading={loadingAnimation}
-                  type="submit"
-                  className="text-white"
-                >
-                  {data ? "Actualizar" : "Crear producto"}
-                </ButtonGeneral>
-              </div>
+              <ButtonSecondary
+                type="button"
+                className="w-full px-3"
+                onClick={onClickClosed}
+              >
+                Cancelar
+              </ButtonSecondary>
+              <ButtonGeneral
+                loading={loadingAnimation}
+                type="submit"
+                className="w-full px-3 text-white"
+              >
+                {imageOnly ? "Guardar foto" : data ? "Actualizar" : "Crear producto"}
+              </ButtonGeneral>
             </div>
           </form>
         </div>

@@ -22,6 +22,7 @@ import InputGeneral from "../components/Input/InputGeneral";
 import ModalGeneral from "../components/Modal/ModalGeneral";
 import { MdOutlineShoppingCartCheckout } from "react-icons/md";
 import { getPaginatedRows } from "../utils/pagination";
+import ModalItem from "../components/Modal/ModalItem";
 
 export default function ListAdd() {
   const queryClient = useQueryClient();
@@ -30,6 +31,8 @@ export default function ListAdd() {
   const { hogar_id, list_id } = useParams();
   const [modalCreateItem, setModalCreateItem] = useState(false);
   const [modalDeleteList, setModalDeleteList] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState(null);
+  const [itemImageToEdit, setItemImageToEdit] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [elementParams, setElementParams] = useState({
     page: Number(searchParams.get("page")) || 1,
@@ -97,6 +100,7 @@ export default function ListAdd() {
         toast.error(data.message);
       } else {
         toast.success(data.message || "Producto eliminado correctamente");
+        queryClient.invalidateQueries({ queryKey: ["getListHome", hogar_id] });
         mutateFilterParamsList(elementParams);
       }
     },
@@ -183,6 +187,16 @@ export default function ListAdd() {
   const paginationSource = dataParamsMutateList || dataList;
   const currentItems = getPaginatedRows(paginationSource);
   const currentItemsCount = currentItems.length;
+  const existingItemIds = Array.from(
+    new Set(
+      [
+        ...(currentList?.itemsList || []),
+        ...(currentItems || []),
+      ]
+        .map((itemList) => itemList.item_id || itemList.item?.id)
+        .filter(Boolean)
+    )
+  );
 
   return (
     <div className="flex flex-col justify-center items-center gap-5">
@@ -261,6 +275,12 @@ export default function ListAdd() {
             onDelete={(itemList) => {
               mutationDeleteItemList.mutate(itemList.id);
             }}
+            onEdit={(item) => {
+              setItemToEdit(item);
+            }}
+            onImageClick={(item) => {
+              setItemImageToEdit(item);
+            }}
             onQuantityChange={(itemList, quantity) => {
               mutationUpdateItemList.mutate({
                 item_list_id: itemList.id,
@@ -313,12 +333,32 @@ export default function ListAdd() {
         <ModalItemAdd
           hogar_id={hogar_id}
           list_id={list_id}
-          existingItemIds={currentItems?.map((itemList) => itemList.item_id)}
+          existingItemIds={existingItemIds}
           onItemAdded={() => {
+            queryClient.invalidateQueries({ queryKey: ["getListHome", hogar_id] });
             mutateFilterParamsList(elementParams);
           }}
           onClickClosed={() => {
             setModalCreateItem(false);
+          }}
+        />
+      )}
+      {itemToEdit && (
+        <ModalItem
+          data={itemToEdit}
+          onClickClosed={() => {
+            setItemToEdit(null);
+            mutateFilterParamsList(elementParams);
+          }}
+        />
+      )}
+      {itemImageToEdit && (
+        <ModalItem
+          data={itemImageToEdit}
+          imageOnly
+          onClickClosed={() => {
+            setItemImageToEdit(null);
+            mutateFilterParamsList(elementParams);
           }}
         />
       )}
