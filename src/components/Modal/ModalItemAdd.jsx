@@ -11,6 +11,7 @@ import { filterParamsItems } from "../../api/item";
 import { IoMdClose } from "react-icons/io";
 import ModalItem from "./ModalItem";
 import { getPaginatedRows } from "../../utils/pagination";
+import { ListSkeleton } from "../Skeleton/Skeleton";
 
 export default function ModalItemAdd({
   onClickClosed,
@@ -128,7 +129,7 @@ export default function ModalItemAdd({
             />
 
             <div className="mt-6 flex flex-col gap-4">
-              {isLoading && <p className="text-center">Cargando...</p>}
+              {isLoading && <ListSkeleton rows={3} />}
               {items?.success === false && (
                 <p className="text-center">
                   No se han podido cargar productos.

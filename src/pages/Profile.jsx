@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import CardInvitation from "../components/Cards/CardInvitation";
 import { useLocation } from "react-router";
 import ModalEditProfile from "../components/Modal/ModalEditProfile";
+import { ProfileSkeleton } from "../components/Skeleton/Skeleton";
 
 export default function Profile() {
   const location = useLocation();
@@ -35,7 +36,7 @@ export default function Profile() {
 
 
   if (isLoading) {
-    return <p>Cargando...</p>;
+    return <ProfileSkeleton />;
   }
   if (error) {
     navigate(-1);

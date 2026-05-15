@@ -15,6 +15,7 @@ import { MdAddHome } from "react-icons/md";
 import ModalCreateHogar from "../components/Modal/ModalCreateHogar";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { PageSkeleton } from "../components/Skeleton/Skeleton";
 
 export default function Home() {
   const user_value = useAtomValue(user);
@@ -78,11 +79,14 @@ export default function Home() {
     });
   }, [data]);
 
+  if (isLoading) {
+    return <PageSkeleton />;
+  }
+
   return (
     <>
       <main className="relative h-full flex flex-col justify-center items-center gap-10">
         <div className="grid grid-cols-1 md:grid-cols-2  xl:grid-cols-3 gap-7 md:gap-15 w-full">
-          {isLoading && <p className="col-span-4 text-center">Cargando...</p>}
           {error && (
             <p className="col-span-4 text-center">
               Ha habido un error recarga la página

@@ -45,6 +45,20 @@ export const filterParamsItems = async (params) => {
   }
 };
 
+export const searchItemImages = async (params) => {
+  try {
+    const response = await api.get("/item/image-search", { params });
+    return response.data;
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error.response?.data?.message ||
+        "No se han podido buscar imágenes para el producto",
+    };
+  }
+};
+
 export const importItemsFromHome = async (data) => {
   try {
     const response = await api.post("/item/import-from-home", data);

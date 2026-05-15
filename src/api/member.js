@@ -35,6 +35,36 @@ export const getProfile = async (data) => {
     }
   };
 
+  export const getPendingInvitations = async (homeId) => {
+    try {
+      const response = await api.get(`/member/invite/pending/${homeId}`);
+
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "No se han podido cargar las invitaciones pendientes",
+      };
+    }
+  };
+
+  export const cancelInvitation = async (invitationId) => {
+    try {
+      const response = await api.delete(`/member/invite/${invitationId}`);
+
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "No se ha podido cancelar la invitación",
+      };
+    }
+  };
+
   export const deleteMember = async (data) => {
 
     try {
@@ -56,4 +86,3 @@ export const getProfile = async (data) => {
       return { success: false, message: error.response.data.message };
     }
   };
-

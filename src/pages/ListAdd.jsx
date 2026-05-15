@@ -23,6 +23,7 @@ import ModalGeneral from "../components/Modal/ModalGeneral";
 import { MdOutlineShoppingCartCheckout } from "react-icons/md";
 import { getPaginatedRows } from "../utils/pagination";
 import ModalItem from "../components/Modal/ModalItem";
+import { ListSkeleton } from "../components/Skeleton/Skeleton";
 
 export default function ListAdd() {
   const queryClient = useQueryClient();
@@ -69,7 +70,7 @@ export default function ListAdd() {
   const {
     mutate: mutateFilterParamsList,
     data: dataParamsMutateList,
-    // isLoading: isLoadingParamsMutate,
+    isPending: isLoadingParamsMutate,
     // error: errorParamsMutate,
   } = useMutation({
     mutationFn: (params) => getAllItemList({ ...params, id_list: list_id }),
@@ -175,7 +176,7 @@ export default function ListAdd() {
   };
 
   if (isLoading) {
-    return <p className="text-center">Cargando...</p>;
+    return <ListSkeleton />;
   }
   if (error || dataList.success === false) {
     return (
@@ -201,30 +202,30 @@ export default function ListAdd() {
   return (
     <div className="flex flex-col justify-center items-center gap-5">
       <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <ButtonSecondary
-          className="w-fit"
-          onClick={() => navigate(`/hogar/${hogar_id}`)}
-          children={
-            <span className="flex items-center gap-2">
-              <IoArrowBack /> Volver
-            </span>
-          }
-        />
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <ButtonSecondary
+            className="w-fit px-3"
+            onClick={() => navigate(`/hogar/${hogar_id}`)}
+            children={
+              <span className="flex items-center gap-2">
+                <IoArrowBack /> Volver
+              </span>
+            }
+          />
           <h1 className="text-2xl font-bold text-gray-900">Editar lista</h1>
-          <ButtonGeneral
-            type="button"
-            className="flex items-center justify-center gap-2"
-            onClick={() => navigate(`/hogar/${hogar_id}/${list_id}/do`)}
-          >
-            <MdOutlineShoppingCartCheckout className="text-xl" />
-            Hacer la compra
-          </ButtonGeneral>
         </div>
+        <ButtonGeneral
+          type="button"
+          className="flex items-center justify-center gap-2"
+          onClick={() => navigate(`/hogar/${hogar_id}/${list_id}/do`)}
+        >
+          <MdOutlineShoppingCartCheckout className="text-xl" />
+          Hacer la compra
+        </ButtonGeneral>
       </div>
 
       <form
-        className="grid w-full gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[1fr_auto_auto]"
+        className="grid w-full gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[1fr_320px]"
         onSubmit={handleSubmitList(onSubmitUpdateList)}
       >
         <div>
@@ -238,17 +239,20 @@ export default function ListAdd() {
             </p>
           )}
         </div>
-        <ButtonGeneral
-          type="submit"
-          loading={mutationUpdateList.isPending}
-          children="Guardar nombre"
-        />
-        <ButtonSecondary
-          type="button"
-          className="text-red-500"
-          children="Eliminar lista"
-          onClick={() => setModalDeleteList(true)}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <ButtonSecondary
+            type="button"
+            className="w-full px-3 text-red-500"
+            children="Eliminar lista"
+            onClick={() => setModalDeleteList(true)}
+          />
+          <ButtonGeneral
+            type="submit"
+            loading={mutationUpdateList.isPending}
+            children="Guardar nombre"
+            className="w-full px-3"
+          />
+        </div>
       </form>
 
       <InputForm
@@ -264,6 +268,11 @@ export default function ListAdd() {
       )}
 
       <div className="grid w-full gap-5 md:grid-cols-2">
+        {isLoadingParamsMutate && currentItems.length === 0 && (
+          <div className="md:col-span-2">
+            <ListSkeleton rows={4} />
+          </div>
+        )}
         {currentItems?.map((data) => (
           <CardItemList
             dataProv={data}

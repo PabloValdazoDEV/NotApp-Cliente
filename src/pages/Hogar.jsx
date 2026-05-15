@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaUserGroup } from "react-icons/fa6";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,6 +24,7 @@ import ModalEditHogar from "../components/Modal/ModalEditHogar";
 import HogarMembers from "./HogarMembers";
 import ModalImportItems from "../components/Modal/ModalImportItems";
 import { getPaginatedRows } from "../utils/pagination";
+import { ListSkeleton, PageSkeleton } from "../components/Skeleton/Skeleton";
 
 const getListStatus = (list) => {
   const itemsList = list.itemsList || [];
@@ -57,6 +58,7 @@ export default function Hogar() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { hogar_id } = useParams();
   const userContext = useAtomValue(user);
+  const swipeStartX = useRef(null);
 
   // UseStates
   const [elementParams, setElementParams] = useState({
@@ -82,6 +84,42 @@ export default function Hogar() {
     productos: elementParams.element === "productos" ? true : false,
     listas: elementParams.element === "lista" ? true : false,
   });
+
+  const setHogarSection = (section) => {
+    const nextActive = {
+      hogar: section === "hogar",
+      productos: section === "productos",
+      listas: section === "lista",
+    };
+
+    setActive(nextActive);
+    setElementParams({
+      element: section === "lista" ? "lista" : section === "productos" ? "productos" : "",
+      page: 1,
+      name: "",
+      title: "",
+      category: "",
+    });
+  };
+
+  const handleSwipeEnd = (event) => {
+    if (swipeStartX.current === null) return;
+
+    const deltaX = event.changedTouches[0].clientX - swipeStartX.current;
+    swipeStartX.current = null;
+
+    if (Math.abs(deltaX) < 70) return;
+
+    const canSeeMembers = isOwner || isAdmin;
+    if (active.listas) {
+      setHogarSection(deltaX < 0 ? "productos" : canSeeMembers ? "hogar" : "productos");
+      return;
+    }
+
+    if (active.productos || active.hogar) {
+      setHogarSection("lista");
+    }
+  };
 
   const { register, handleSubmit, reset } = useForm();
 
@@ -199,7 +237,7 @@ export default function Hogar() {
   const {
     mutate: mutateFilterParamsItem,
     data: dataParamsMutateItem,
-    // isLoading: isLoadingParamsMutate,
+    isPending: isLoadingParamsMutateItem,
     // error: errorParamsMutate,
   } = useMutation({
     mutationFn: (params) => filterParamsItems({ ...params, id_home: hogar_id }),
@@ -214,7 +252,7 @@ export default function Hogar() {
   const {
     mutate: mutateFilterParamsList,
     data: dataParamsMutateList,
-    // isLoading: isLoadingParamsMutate,
+    isPending: isLoadingParamsMutateList,
     // error: errorParamsMutate,
   } = useMutation({
     mutationFn: (params) => filterParamsList({ ...params, id_home: hogar_id }),
@@ -268,7 +306,7 @@ export default function Hogar() {
   };
 
   if (isLoading) {
-    return <p>Cargando...</p>;
+    return <PageSkeleton />;
   }
   if (error) {
     navigate(-1);
@@ -283,7 +321,13 @@ export default function Hogar() {
 
   return (
     <>
-      <main className="relative h-full flex flex-col justify-center items-center gap-5 ">
+      <main
+        className="relative h-full flex flex-col justify-center items-center gap-5 "
+        onTouchStart={(event) => {
+          swipeStartX.current = event.touches[0].clientX;
+        }}
+        onTouchEnd={handleSwipeEnd}
+      >
         {/* <div className="flex flex-row justify-center gap-3 items-center">
           <div
             className={` flex-row gap-3 hidden md:flex ml-10 ${
@@ -407,17 +451,7 @@ export default function Hogar() {
                       : "border-transparent text-[#616f89]  text-sm font-semibold whitespace-nowrap hover:text-[#111318]"
                   }`}
                   onClick={() => {
-                    setActive({
-                      hogar: true,
-                      productos: false,
-                      listas: false,
-                    });
-                    setElementParams({
-                      element: "",
-                      page: 1,
-                      name: "",
-                      category: "",
-                    });
+                    setHogarSection("hogar");
                   }}
                 >
                   Miembros
@@ -430,17 +464,7 @@ export default function Hogar() {
                     : "border-transparent text-[#616f89]  text-sm font-semibold whitespace-nowrap hover:text-[#111318]"
                 }`}
                 onClick={() => {
-                  setActive({
-                    hogar: false,
-                    productos: false,
-                    listas: true,
-                  });
-                  setElementParams({
-                    element: "lista",
-                    page: 1,
-                    name: "",
-                    category: "",
-                  });
+                  setHogarSection("lista");
                 }}
               >
                 Lista
@@ -452,17 +476,7 @@ export default function Hogar() {
                     : "border-transparent text-[#616f89]  text-sm font-semibold whitespace-nowrap hover:text-[#111318]"
                 }`}
                 onClick={() => {
-                  setActive({
-                    hogar: false,
-                    productos: true,
-                    listas: false,
-                  });
-                  setElementParams({
-                    element: "productos",
-                    page: 1,
-                    name: "",
-                    category: "",
-                  });
+                  setHogarSection("productos");
                 }}
               >
                 Productos
@@ -504,6 +518,11 @@ export default function Hogar() {
               {...register("nameFindItemMobile")}
             />
             <div className="grid md:grid-cols-2 md:gap-10">
+              {isLoadingParamsMutateItem && itemRows.length === 0 && (
+                <div className="md:col-span-2">
+                  <ListSkeleton rows={4} />
+                </div>
+              )}
               {itemRows.map((item, i) => {
                 return (
                   <CardItem
@@ -587,6 +606,11 @@ export default function Hogar() {
               {...register("titleFindListMobile")}
             />
             <div className="grid md:grid-cols-2 md:gap-10 gap-5">
+              {isLoadingParamsMutateList && listRows.length === 0 && (
+                <div className="md:col-span-2">
+                  <ListSkeleton rows={4} />
+                </div>
+              )}
               {sortListsForHome(listRows).map((item) => {
                 return (
                   <CardList

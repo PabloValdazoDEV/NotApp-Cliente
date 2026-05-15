@@ -207,6 +207,15 @@ return (
               {statusButtonLabel}
             </span>
           </button>
+          <ButtonSecondary
+            type="button"
+            className="h-9 px-2 text-xs"
+            onClick={() => onEdit?.(dataProv.item)}
+          >
+            <span className="flex items-center justify-center gap-1">
+              <MdOutlineEdit /> Editar
+            </span>
+          </ButtonSecondary>
         </div>
         <div
           className={`flex flex-row gap-3 col-span-10 justify-center ${

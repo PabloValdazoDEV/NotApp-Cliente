@@ -5,15 +5,58 @@ import useFilePreview from "../../hooks/useFilePreview";
 import InputGeneral from "../Input/InputGeneral";
 import SelectCategory from "../Input/SelectCategory";
 import SelectSupermarket from "../Input/SelectSupermarket";
-import { useEffect, useState } from "react";
-import { deleteItem, postItem, updateItem } from "../../api/item";
+import { useEffect, useRef, useState } from "react";
+import { deleteItem, postItem, searchItemImages, updateItem } from "../../api/item";
 import { useParams } from "react-router";
 import ModalGeneral from "./ModalGeneral";
 import toast from "react-hot-toast";
 import { IoMdClose } from "react-icons/io";
-import { FaCloudArrowUp } from "react-icons/fa6";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
 import ImageSourceInputs from "../Input/ImageSourceInputs";
+
+const getImageSearchRows = (response) => {
+  const rows = Array.isArray(response)
+    ? response
+    : response?.images ||
+      response?.results ||
+      response?.items ||
+      response?.data?.images ||
+      response?.data?.results ||
+      response?.data?.items ||
+      response?.value ||
+      [];
+
+  return rows
+    .map((image) => {
+      if (typeof image === "string") {
+        return { url: image, thumbnailUrl: image, title: "Imagen sugerida" };
+      }
+
+      const url =
+        image.url ||
+        image.imageUrl ||
+        image.originalUrl ||
+        image.link ||
+        image.contentUrl ||
+        image.src;
+      const thumbnailUrl =
+        image.thumbnailUrl ||
+        image.thumbnail ||
+        image.thumbnailLink ||
+        image.image?.thumbnailLink ||
+        image.image?.thumbnailUrl ||
+        image.thumbnail?.src ||
+        url;
+
+      return {
+        ...image,
+        url,
+        thumbnailUrl,
+        title: image.title || image.name || "Imagen sugerida",
+      };
+    })
+    .filter((image) => image.url);
+};
 
 export default function ModalItem({
   onClickClosed,
@@ -36,6 +79,13 @@ export default function ModalItem({
   const [modalDelete, setModalDelete] = useState(false);
   const [loadingAnimation, setLoadingAnimation] = useState(false);
   const [imageRemoved, setImageRemoved] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState("");
+  const [connectionInfo, setConnectionInfo] = useState({
+    isOnline: navigator.onLine,
+    effectiveType: navigator.connection?.effectiveType || "",
+    saveData: Boolean(navigator.connection?.saveData),
+  });
+  const lastImageSearchCriteriaRef = useRef("");
 
   const {
     handleSubmit,
@@ -58,6 +108,29 @@ export default function ModalItem({
     initialName,
     setValue,
   ]);
+
+  useEffect(() => {
+    const connection =
+      navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+    const updateConnectionInfo = () => {
+      setConnectionInfo({
+        isOnline: navigator.onLine,
+        effectiveType: connection?.effectiveType || "",
+        saveData: Boolean(connection?.saveData),
+      });
+    };
+
+    window.addEventListener("online", updateConnectionInfo);
+    window.addEventListener("offline", updateConnectionInfo);
+    connection?.addEventListener?.("change", updateConnectionInfo);
+
+    return () => {
+      window.removeEventListener("online", updateConnectionInfo);
+      window.removeEventListener("offline", updateConnectionInfo);
+      connection?.removeEventListener?.("change", updateConnectionInfo);
+    };
+  }, []);
 
   const mutation = useMutation({
     mutationFn: postItem,
@@ -107,6 +180,28 @@ export default function ModalItem({
     },
   });
 
+  const {
+    data: imageSearchData,
+    isPending: isSearchingImages,
+    mutate: mutateSearchImages,
+    reset: resetImageSearch,
+  } = useMutation({
+    mutationFn: searchItemImages,
+    onSuccess: (response) => {
+      if (response?.success === false) {
+        toast.error(response.message);
+        return;
+      }
+
+      if (getImageSearchRows(response).length === 0) {
+        toast("No se han encontrado imágenes para este producto");
+      }
+    },
+    onError: () => {
+      toast.error("No se han podido buscar imágenes");
+    },
+  });
+
   const onSubmitDteleteItem = () => {
     mutationDelete.mutate(data.id);
   };
@@ -126,6 +221,8 @@ export default function ModalItem({
           : dataFrom),
         item_id: data.id,
         file: dataFrom?.file?.[0] ? dataFrom?.file?.[0] : null,
+        imageUrl:
+          !dataFrom?.file?.[0] && !imageRemoved ? selectedImageUrl : "",
         categories: categoriesToSave,
         supermarket: imageOnly ? data.supermarket || "CUALQUIERA" : supermarket,
         imageDelete: imageRemoved,
@@ -137,6 +234,8 @@ export default function ModalItem({
         ...dataFrom,
         hogar_id: hogar_id,
         file: imageRemoved ? null : dataFrom?.file?.[0],
+        imageUrl:
+          !dataFrom?.file?.[0] && !imageRemoved ? selectedImageUrl : "",
         categories: [categories.first, categories.second, categories.third],
         supermarket,
       };
@@ -149,10 +248,68 @@ export default function ModalItem({
 
   useEffect(() => {
     setImageRemoved(false);
+    if (watchedFile?.length) {
+      setSelectedImageUrl("");
+    }
   }, [watchedFile]);
 
   const [file] = watch(["file"]);
+  const watchedName = watch("name");
+  const watchedDescription = watch("description");
   const [filePreview] = useFilePreview(file);
+  const currentImageSearchKey = JSON.stringify({
+    name: (watchedName || "").trim(),
+    description: (watchedDescription || "").trim(),
+    categories: [categories.first, categories.second, categories.third].filter(
+      Boolean
+    ),
+    supermarket,
+  });
+  const imageSearchRows = getImageSearchRows(imageSearchData);
+  const hasSearchedImages = Boolean(imageSearchData);
+  const hasPoorConnection =
+    !connectionInfo.isOnline ||
+    connectionInfo.saveData ||
+    ["slow-2g", "2g"].includes(connectionInfo.effectiveType);
+  const visibleImageUrl =
+    !imageRemoved && filePreview
+      ? filePreview
+      : !imageRemoved && selectedImageUrl
+        ? selectedImageUrl
+        : !imageRemoved && data?.image
+          ? `https://res.cloudinary.com/${import.meta.env.VITE_NAME_CLOUDINARY}/image/upload/f_auto,q_auto,w_700/${data.image}`
+          : "";
+
+  useEffect(() => {
+    if (!lastImageSearchCriteriaRef.current) return;
+    if (currentImageSearchKey === lastImageSearchCriteriaRef.current) return;
+
+    resetImageSearch();
+    lastImageSearchCriteriaRef.current = "";
+    setSelectedImageUrl("");
+  }, [currentImageSearchKey, resetImageSearch]);
+
+  const onSearchImages = () => {
+    const name = (watchedName || "").trim();
+    const description = (watchedDescription || "").trim();
+
+    if (!name && !description) {
+      toast.error("Escribe un nombre o una descripción para buscar imágenes");
+      return;
+    }
+
+    lastImageSearchCriteriaRef.current = currentImageSearchKey;
+    mutateSearchImages({
+      name,
+      description,
+      supermarket,
+      categories: [categories.first, categories.second, categories.third].filter(
+        Boolean
+      ),
+      refresh: Date.now(),
+    });
+  };
+
   return (
     <>
       {!modalDelete && (
@@ -172,7 +329,7 @@ export default function ModalItem({
                 </h2>
                 <p className="text-sm text-gray-500">
                   {imageOnly
-                    ? "Sube, cambia o borra la imagen del producto."
+                    ? "Sube, busca, cambia o borra la imagen del producto."
                     : "Imagen, datos básicos, categorías y supermercado."}
                 </p>
               </div>
@@ -192,43 +349,105 @@ export default function ModalItem({
                   <label className="text-sm font-medium text-gray-700">
                     Imagen del producto
                   </label>
-                  {(data?.image || filePreview) && !imageRemoved && (
+                  {visibleImageUrl && (
                     <ButtonSecondary
                       type="button"
-                      onClick={() => setImageRemoved(true)}
+                      onClick={() => {
+                        setImageRemoved(true);
+                        setSelectedImageUrl("");
+                      }}
                       className="h-9 px-3 text-red-600 hover:bg-red-50"
                     >
                       Borrar
                     </ButtonSecondary>
                   )}
                 </div>
-                <div
-                  className="flex min-h-[180px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 bg-cover bg-center transition hover:border-(--color-primary) hover:bg-gray-100"
-                  style={{
-                    backgroundImage:
-                      !imageRemoved && filePreview
-                        ? `url(${filePreview})`
-                        : !imageRemoved && data?.image
-                          ? `url(https://res.cloudinary.com/${import.meta.env.VITE_NAME_CLOUDINARY}/image/upload/f_auto,q_auto,w_700/${data.image})`
-                          : "none",
-                  }}
-                >
-                  <div className="flex h-full w-full flex-col items-center justify-center rounded-xl bg-white/75 px-4 py-8 text-center">
-                    <FaCloudArrowUp className="mb-3 text-4xl text-gray-500" />
-                    <p className="text-sm font-medium text-gray-700">
-                      Añade o cambia la imagen
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      PNG, JPG o WEBP
-                    </p>
-                  </div>
-                </div>
+                {visibleImageUrl && (
+                  <div
+                    className="min-h-[180px] rounded-xl border border-gray-200 bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url(${visibleImageUrl})`,
+                    }}
+                  />
+                )}
                 <ImageSourceInputs
                   id="product-image"
                   register={register}
                   setValue={setValue}
-                  className="mt-3"
+                  className={visibleImageUrl ? "mt-3" : ""}
                 />
+                <p className="mt-2 text-xs text-gray-500">
+                  Imagen opcional. Formato recomendado: JPG, PNG o WEBP. Peso
+                  recomendado: máximo 2 MB.
+                </p>
+                <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">
+                        Buscar foto en internet
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Usa el nombre, la descripción y el supermercado.
+                      </p>
+                      <p
+                        className={`mt-1 text-xs ${
+                          hasPoorConnection ? "font-semibold text-amber-600" : "text-gray-500"
+                        }`}
+                      >
+                        No se recomienda usar con mala conexión
+                        {hasPoorConnection
+                          ? ". Tu conexión parece lenta o inestable."
+                          : "."}
+                      </p>
+                    </div>
+                    <ButtonSecondary
+                      type="button"
+                      loading={isSearchingImages}
+                      loadingText="Buscando..."
+                      onClick={onSearchImages}
+                      className="h-10 px-4"
+                    >
+                      {hasSearchedImages ? "Buscar otras fotos" : "Buscar fotos"}
+                    </ButtonSecondary>
+                  </div>
+                  {imageSearchData?.success === false && (
+                    <p className="mt-3 text-sm text-gray-500">
+                      Búsqueda pendiente de backend.
+                    </p>
+                  )}
+                  {imageSearchRows.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {imageSearchRows.slice(0, 6).map((image) => {
+                        const isSelected = selectedImageUrl === image.url;
+
+                        return (
+                          <button
+                            type="button"
+                            key={image.url}
+                            onClick={() => {
+                              setImageRemoved(false);
+                              setSelectedImageUrl(image.url);
+                            }}
+                            className={`overflow-hidden rounded-lg border bg-white text-left transition hover:scale-[1.02] ${
+                              isSelected
+                                ? "border-(--color-primary) ring-2 ring-(--color-primary)/20"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            <img
+                              src={image.thumbnailUrl}
+                              alt={image.title}
+                              className="aspect-square w-full object-cover"
+                            />
+                            <span className="block truncate px-2 py-1 text-xs text-gray-600">
+                              {isSelected ? "Seleccionada" : image.title}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {!imageOnly && (

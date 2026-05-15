@@ -6,6 +6,7 @@ import { useSetAtom } from "jotai";
 import { fetchUser } from "../../store/userAtom";
 import ButtonSecondary from "../Buttons/ButtonSecondary";
 import { FaUserGroup } from "react-icons/fa6";
+import { SkeletonBlock } from "../Skeleton/Skeleton";
 
 export default function CardInvitation({ data }) {
   const queryClient = useQueryClient();
@@ -61,7 +62,7 @@ export default function CardInvitation({ data }) {
 
 
   if (isLoading) {
-    return <p>Cargando...</p>;
+    return <SkeletonBlock className="h-36 w-full rounded-xl" />;
   }
   if (error) {
     return <p>Error al cargar la invitación</p>;

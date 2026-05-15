@@ -22,17 +22,18 @@ import ListDo from "./pages/ListDo";
 import ListAdd from "./pages/ListAdd";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookiesPolicy from "./pages/CookiesPolicy";
+import { PageSkeleton } from "./components/Skeleton/Skeleton";
 
 
 const PublicRoute = ({ element }) => {
   const { isAuth, loading } = useUserAuth();
-  if (loading) return <div>Cargando...</div>;
+  if (loading) return <PageSkeleton />;
   if (isAuth) return <Navigate to="/home" />;
   return element;
 };
 const PrivateRoute = ({ element }) => {
   const { isAuth, loading } = useUserAuth();
-  if (loading) return <div>Cargando...</div>;
+  if (loading) return <PageSkeleton />;
   if (!isAuth) return <Navigate to="/login" />;
   return element;
 };

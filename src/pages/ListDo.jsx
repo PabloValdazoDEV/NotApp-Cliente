@@ -12,6 +12,11 @@ import { IoArrowBack } from "react-icons/io5";
 import { FaSlidersH } from "react-icons/fa";
 import SelectSupermarket from "../components/Input/SelectSupermarket";
 import { CATEGORY_LABELS } from "../constants/categories";
+import { ListSkeleton } from "../components/Skeleton/Skeleton";
+import ButtonGeneral from "../components/Buttons/ButtonGeneral";
+import ModalItemAdd from "../components/Modal/ModalItemAdd";
+import ModalItem from "../components/Modal/ModalItem";
+import { MdOutlineAddShoppingCart } from "react-icons/md";
 
 const PENDING_ACTIONS_KEY = "notapp:listdo:pending-actions";
 const ITEM_STATUSES = {
@@ -126,6 +131,8 @@ export default function ListDo() {
   const [supermarket, setSupermarket] = useState("");
   const [sortMode, setSortMode] = useState("category");
   const [showFilters, setShowFilters] = useState(false);
+  const [modalCreateItem, setModalCreateItem] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState(null);
   const [pendingActions, setPendingActions] = useState(() =>
     readPendingActions().filter((action) => action.list_id === list_id)
   );
@@ -134,6 +141,7 @@ export default function ListDo() {
     data: dataList,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["getList", list_id],
     queryFn: () => {
@@ -403,6 +411,7 @@ export default function ListDo() {
         onStatusChange={handleStatusChange}
         onPurchasedQuantityChange={handlePurchasedQuantityChange}
         onItemUpdated={handleItemUpdated}
+        onEdit={(product) => setItemToEdit(product)}
       />
     ));
 
@@ -419,7 +428,7 @@ export default function ListDo() {
   };
 
   if (isLoading && items.length === 0) {
-    return <p className="text-center">Cargando...</p>;
+    return <ListSkeleton />;
   }
   if ((error || dataList?.success === false) && items.length === 0) {
    return <p className="text-center">Ha habido un error, recarga la página.</p>;
@@ -429,16 +438,26 @@ export default function ListDo() {
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <ButtonSecondary
-            className="w-fit"
-            onClick={() => navigate(`/hogar/${hogar_id}`)}
-            children={
-              <span className="flex items-center gap-2">
-                <IoArrowBack /> Volver
-              </span>
-            }
-          />
-          <h1 className="text-2xl font-bold text-gray-900">Hacer la compra</h1>
+          <div className="flex items-center gap-3">
+            <ButtonSecondary
+              className="w-fit px-3"
+              onClick={() => navigate(`/hogar/${hogar_id}`)}
+              children={
+                <span className="flex items-center gap-2">
+                  <IoArrowBack /> Volver
+                </span>
+              }
+            />
+            <h1 className="text-2xl font-bold text-gray-900">Hacer la compra</h1>
+          </div>
+          <ButtonGeneral
+            type="button"
+            className="flex items-center justify-center gap-2"
+            onClick={() => setModalCreateItem(true)}
+          >
+            <MdOutlineAddShoppingCart className="text-xl" />
+            Añadir producto
+          </ButtonGeneral>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
           <span
@@ -529,6 +548,30 @@ export default function ListDo() {
       {renderStatusBlock("Faltan", pendingItems)}
       {renderStatusBlock("Productos no encontrados", notFoundItems)}
       {renderStatusBlock("Comprados", checkedItems)}
+      {modalCreateItem && (
+        <ModalItemAdd
+          hogar_id={hogar_id}
+          list_id={list_id}
+          existingItemIds={Array.from(
+            new Set(items.map((itemList) => itemList.item_id || itemList.item?.id))
+          )}
+          onItemAdded={() => {
+            refetch();
+          }}
+          onClickClosed={() => {
+            setModalCreateItem(false);
+          }}
+        />
+      )}
+      {itemToEdit && (
+        <ModalItem
+          data={itemToEdit}
+          onClickClosed={() => {
+            setItemToEdit(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

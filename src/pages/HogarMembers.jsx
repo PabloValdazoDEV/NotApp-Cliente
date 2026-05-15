@@ -1,8 +1,13 @@
 import { useNavigate, useParams } from "react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteMember, postInvite } from "../api/member";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  cancelInvitation,
+  deleteMember,
+  getPendingInvitations,
+  postInvite,
+} from "../api/member";
 import { useAtomValue } from "jotai";
 import { user } from "../store/userAtom";
 import ModalGeneral from "../components/Modal/ModalGeneral";
@@ -10,6 +15,38 @@ import toast from "react-hot-toast";
 import CardMember from "../components/Cards/CardMember";
 import ButtonSecondary from "../components/Buttons/ButtonSecondary";
 import InputGeneral from "../components/Input/InputGeneral";
+import { MAX_HOME_MEMBERS } from "../constants/home";
+
+const getPendingInvitationRows = (response, dataHogar) => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.pendingInvitations)) return response.pendingInvitations;
+  if (Array.isArray(response?.invitations)) return response.invitations;
+  if (Array.isArray(dataHogar?.pendingInvitations)) return dataHogar.pendingInvitations;
+  if (Array.isArray(dataHogar?.invitations)) {
+    return dataHogar.invitations.filter((invitation) => {
+      const status = invitation.status || invitation.state;
+      return !status || status === "PENDING";
+    });
+  }
+
+  return [];
+};
+
+const getInvitationName = (invitation) =>
+  invitation.email ||
+  invitation.user?.email ||
+  invitation.invitedUser?.email ||
+  invitation.name ||
+  "Invitación pendiente";
+
+const formatInvitationDate = (dateString) => {
+  if (!dateString) return null;
+
+  return new Intl.DateTimeFormat("es", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(dateString));
+};
 
 export default function HogarMembers({dataHogar}) {
   const navigate = useNavigate();
@@ -21,7 +58,22 @@ export default function HogarMembers({dataHogar}) {
   const [modalMember, setModalMember] = useState(false);
 
 
-  const { register, handleSubmit } = useForm();
+  const { register, handleSubmit, reset } = useForm();
+
+  const { data: pendingInvitationsData, isLoading: pendingInvitationsLoading } =
+    useQuery({
+      queryKey: ["pendingInvitations", hogar_id],
+      queryFn: () => getPendingInvitations(hogar_id),
+      enabled: Boolean(hogar_id),
+    });
+
+  const pendingInvitations = getPendingInvitationRows(
+    pendingInvitationsData,
+    dataHogar
+  );
+  const membersCount = dataHogar?.members?.length || 0;
+  const occupiedPlaces = membersCount + pendingInvitations.length;
+  const hasReachedMemberLimit = occupiedPlaces >= MAX_HOME_MEMBERS;
 
   const mutationInivteHogar = useMutation({
     mutationFn: postInvite,
@@ -30,6 +82,7 @@ export default function HogarMembers({dataHogar}) {
         toast.error(data.message);
       } else {
         toast.success(data.message);
+        reset();
       }
       queryClient.invalidateQueries();
     },
@@ -47,7 +100,24 @@ export default function HogarMembers({dataHogar}) {
     },
   });
 
+  const mutationCancelInvitation = useMutation({
+    mutationFn: cancelInvitation,
+    onSuccess: (data) => {
+      if (data.success === false) {
+        toast.error(data.message);
+      } else {
+        toast.success(data.message || "Invitación cancelada");
+      }
+      queryClient.invalidateQueries();
+    },
+  });
+
   const onSubmitInviteHogar = (data) => {
+    if (hasReachedMemberLimit) {
+      toast.error(`Un hogar puede tener como máximo ${MAX_HOME_MEMBERS} miembros`);
+      return;
+    }
+
     mutationInivteHogar.mutate({ ...data, id: hogar_id });
   };
 
@@ -60,7 +130,7 @@ export default function HogarMembers({dataHogar}) {
                 <h3 className="flex items-center font-bold text-slate-900 gap-2">
                   Miembros
                   <span className="ml-3 px-2 py-0.5 rounded-full bg-slate-200  text-xs text-slate-600 ">
-                    {dataHogar?.members.length}
+                    {membersCount}/{MAX_HOME_MEMBERS}
                   </span>
                 </h3>
               </div>
@@ -70,8 +140,75 @@ export default function HogarMembers({dataHogar}) {
                     return <CardMember data={member} key={i} />;
                   })}
                 </ul>
+                <div className="border-t border-slate-100 px-6 py-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-bold text-slate-900">
+                      Pendientes
+                    </h4>
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                      {pendingInvitations.length}
+                    </span>
+                  </div>
+                  {pendingInvitationsLoading && (
+                    <p className="text-sm text-slate-500">Cargando...</p>
+                  )}
+                  {!pendingInvitationsLoading &&
+                    pendingInvitationsData?.success === false && (
+                      <p className="text-sm text-slate-500">
+                        Pendientes no disponible hasta actualizar el backend.
+                      </p>
+                    )}
+                  {!pendingInvitationsLoading &&
+                    pendingInvitationsData?.success !== false &&
+                    pendingInvitations.length === 0 && (
+                      <p className="text-sm text-slate-500">
+                        No hay invitaciones pendientes.
+                      </p>
+                    )}
+                  {pendingInvitations.length > 0 && (
+                    <ul className="flex flex-col gap-2">
+                      {pendingInvitations.map((invitation) => (
+                        <li
+                          key={invitation.id}
+                          className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-900">
+                              {getInvitationName(invitation)}
+                            </p>
+                            {formatInvitationDate(invitation.createdAt) && (
+                              <p className="text-xs text-slate-500">
+                                Enviada el{" "}
+                                {formatInvitationDate(invitation.createdAt)}
+                              </p>
+                            )}
+                          </div>
+                          <ButtonSecondary
+                            loading={mutationCancelInvitation.isPending}
+                            className="h-9 px-3 text-red-600 hover:bg-red-50"
+                            onClick={() => {
+                              mutationCancelInvitation.mutate(invitation.id);
+                            }}
+                          >
+                            Cancelar
+                          </ButtonSecondary>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               <div className="p-4 border-t border-slate-200 bg-slate-50/50 ">
+                <div className="mb-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+                  <span>
+                    Plazas ocupadas: {occupiedPlaces}/{MAX_HOME_MEMBERS}
+                  </span>
+                  {hasReachedMemberLimit && (
+                    <span className="font-semibold text-red-600">
+                      Límite alcanzado
+                    </span>
+                  )}
+                </div>
                 <form
                   onSubmit={handleSubmit(onSubmitInviteHogar)}
                   className="flex flex-row w-full justify-center items-center gap-5"
@@ -86,6 +223,8 @@ export default function HogarMembers({dataHogar}) {
                   <ButtonSecondary
                     type="submit"
                     children="Invitar"
+                    disabled={hasReachedMemberLimit}
+                    loading={mutationInivteHogar.isPending}
                     className="border border-slate-300 h-12"
                   />
                 </form>
