@@ -102,6 +102,7 @@ export default function Home() {
               </p>
             </div>
             <button
+              data-tour="home-create"
               className="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-(--color-primary) text-white text-sm font-bold leading-normal transition-colors shadow-sm hover:shadow-md"
               onClick={() => {
                 setViewModalCreateHogar(true);
@@ -125,12 +126,13 @@ export default function Home() {
           </div>
           {sortedHomes.length > 0 && (
             <>
-              {sortedHomes.map((home) => {
+              {sortedHomes.map((home, index) => {
                 const isFavorite = Boolean(home.is_favorite);
 
                 return (
                 <div
                   key={home.id}
+                  data-tour={index === 0 ? "home-card" : undefined}
                   className={`group flex flex-col bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer`}
                   onClick={() => {
                     navigate(`/hogar/${home.id}`);

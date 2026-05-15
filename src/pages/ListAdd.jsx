@@ -215,6 +215,7 @@ export default function ListAdd() {
           <h1 className="text-2xl font-bold text-gray-900">Editar lista</h1>
         </div>
         <ButtonGeneral
+          data-tour="shopping-start"
           type="button"
           className="flex items-center justify-center gap-2"
           onClick={() => navigate(`/hogar/${hogar_id}/${list_id}/do`)}
@@ -308,6 +309,7 @@ export default function ListAdd() {
         }`}
       >
         <ButtonGeneral
+          data-tour="list-add-product"
           className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
           onClick={() => {
             setModalCreateItem(true);

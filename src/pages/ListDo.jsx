@@ -451,6 +451,7 @@ export default function ListDo() {
             <h1 className="text-2xl font-bold text-gray-900">Hacer la compra</h1>
           </div>
           <ButtonGeneral
+            data-tour="shopping-add-product"
             type="button"
             className="flex items-center justify-center gap-2"
             onClick={() => setModalCreateItem(true)}

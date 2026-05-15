@@ -442,9 +442,13 @@ export default function Hogar() {
                 )}
               </div>
             </div>
-            <div className="flex justify-around md:justify-start border-b border-[#dbdfe6] mt-6 overflow-x-auto no-scrollbar">
+            <div
+              data-tour="hogar-tabs"
+              className="flex justify-around md:justify-start border-b border-[#dbdfe6] mt-6 overflow-x-auto no-scrollbar"
+            >
               {(isOwner || isAdmin) && (
                 <p
+                  data-tour="hogar-members-tab"
                   className={`flex items-center justify-center px-3 py-3 border-b-2 transition-colors cursor-pointer ${
                     active.hogar
                       ? "border-[color:var(--color-primary)]  text-(--color-primary) text-sm font-bold whitespace-nowrap"
@@ -458,6 +462,7 @@ export default function Hogar() {
                 </p>
               )}
               <p
+                data-tour="hogar-lists-tab"
                 className={`flex items-center justify-center px-3 py-3 border-b-2 transition-colors cursor-pointer  ${
                   active.listas
                     ? "border-[color:var(--color-primary)]  text-(--color-primary) text-sm font-bold whitespace-nowrap"
@@ -470,6 +475,7 @@ export default function Hogar() {
                 Lista
               </p>
               <p
+                data-tour="hogar-products-tab"
                 className={`flex items-center justify-center px-3 py-3 border-b-2 transition-colors cursor-pointer  ${
                   active.productos
                     ? "border-[color:var(--color-primary)]  text-(--color-primary) text-sm font-bold whitespace-nowrap"
@@ -551,6 +557,7 @@ export default function Hogar() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 {(isOwner || isAdmin) && (
                   <ButtonSecondary
+                    data-tour="product-import"
                     className="rounded-full bg-white shadow-lg"
                     onClick={() => {
                       setModalImportItems(true);
@@ -560,6 +567,7 @@ export default function Hogar() {
                   </ButtonSecondary>
                 )}
                 <ButtonGeneral
+                  data-tour="product-create"
                   className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
                   onClick={() => {
                     setModalCreateItem(true);
@@ -636,6 +644,7 @@ export default function Hogar() {
               }`}
             >
               <ButtonGeneral
+                data-tour="list-create"
                 className="flex items-center gap-2 bg-[color:var(--color-primary)] text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-600"
                 onClick={() => {
                   setModalCreateList(true);

@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import OnboardingTour from "./Onboarding/OnboardingTour";
 
 export default function Layout() {
   // useEffect(() => {
@@ -37,6 +38,7 @@ export default function Layout() {
         )} */}
         <Outlet />
       </main>
+      <OnboardingTour />
       <Footer />
     </div>
   );

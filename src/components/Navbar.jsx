@@ -40,6 +40,7 @@ export default function Navbar() {
             </Link>
             <Link
               to="/profile"
+              data-tour="profile-link"
               className="text-[color:var(--color-text)] hover:text-[color:var(--color-primary)] no-underline"
             >
               Mi Perfil
@@ -117,6 +118,7 @@ export default function Navbar() {
               <Link
                 to="/profile"
                 onClick={() => setIsOpen(false)}
+                data-tour="profile-link"
                 className="block text-[color:var(--color-text)] text-lg hover:text-[color:var(--color-primary)] no-underline"
               >
                 Mi Perfil

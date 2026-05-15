@@ -6,9 +6,11 @@ export default function ButtonGeneral({
   loading = false,
   title,
   ariaLabel,
+  ...rest
 }) {
   return (
     <button
+      {...rest}
       disabled={loading ? true : false}
       type={type}
       onClick={onClick}

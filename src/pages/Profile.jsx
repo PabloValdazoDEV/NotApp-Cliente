@@ -9,6 +9,9 @@ import CardInvitation from "../components/Cards/CardInvitation";
 import { useLocation } from "react-router";
 import ModalEditProfile from "../components/Modal/ModalEditProfile";
 import { ProfileSkeleton } from "../components/Skeleton/Skeleton";
+import ButtonSecondary from "../components/Buttons/ButtonSecondary";
+
+const ONBOARDING_REPLAY_KEY = "notapp:onboarding:replay";
 
 export default function Profile() {
   const location = useLocation();
@@ -75,14 +78,26 @@ export default function Profile() {
             </p>
           </div>
         </div>
-        <ButtonGeneral
-          type="button"
-          children={"Editar perfil"}
-          className="text-white"
-          onClick={() => {
-            setModalEdit(true);
-          }}
-        />
+        <div className="flex flex-wrap justify-center gap-3">
+          <ButtonGeneral
+            type="button"
+            children={"Editar perfil"}
+            className="text-white"
+            onClick={() => {
+              setModalEdit(true);
+            }}
+          />
+          <ButtonSecondary
+            type="button"
+            onClick={() => {
+              localStorage.setItem(ONBOARDING_REPLAY_KEY, "true");
+              window.dispatchEvent(new Event("notapp:onboarding:replay"));
+              navigate("/home");
+            }}
+          >
+            Ver tutorial
+          </ButtonSecondary>
+        </div>
       </div>
       <hr id="invitaciones" className="border-1 w-2/3 my-7 mx-auto" />
       <h2 className="text-center mb-3" id="invitations">

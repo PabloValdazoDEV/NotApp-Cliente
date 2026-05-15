@@ -6,11 +6,13 @@ export default function ButtonSecondary({
   loading = false,
   loadingText = "",
   disabled = false,
+  ...rest
 }) {
   const isDisabled = loading || disabled;
 
   return (
     <button
+      {...rest}
       disabled={isDisabled}
       type={type}
       onClick={onClick}
