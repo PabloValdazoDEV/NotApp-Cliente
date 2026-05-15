@@ -1,0 +1,19 @@
+{
+  "name": "NotApp",
+  "short_name": "NotApp",
+  "description": "Organiza hogares, productos y listas de compra compartidas.",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#5b84f1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/FavNotApp.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
