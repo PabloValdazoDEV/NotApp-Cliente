@@ -20,7 +20,12 @@ export default function ModalList({ onClickClosed, id_home }) {
 
   const mutation = useMutation({
     mutationFn: postList,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (response?.success === false) {
+        toast.error(response.message);
+        return;
+      }
+
       toast.success("Lista creada correctamente!");
       setLoadingAnimation(false);
       onClickClosed();
@@ -29,9 +34,14 @@ export default function ModalList({ onClickClosed, id_home }) {
     onError: () => {
       toast.error("Error al crear la lista!");
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
 
   const onSubmit = (data) => {
+    if (loadingAnimation) return;
+
     // console.log({...data, id_home: id_home});
     setLoadingAnimation(true)
     mutation.mutate({...data, id_home: id_home})

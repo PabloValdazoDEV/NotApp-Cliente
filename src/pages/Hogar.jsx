@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FaUserGroup } from "react-icons/fa6";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -85,7 +85,7 @@ export default function Hogar() {
     listas: elementParams.element === "lista" ? true : false,
   });
 
-  const setHogarSection = (section) => {
+  const setHogarSection = useCallback((section) => {
     const nextActive = {
       hogar: section === "hogar",
       productos: section === "productos",
@@ -100,7 +100,7 @@ export default function Hogar() {
       title: "",
       category: "",
     });
-  };
+  }, []);
 
   const handleSwipeEnd = (event) => {
     if (swipeStartX.current === null) return;
@@ -231,6 +231,20 @@ export default function Hogar() {
   useEffect(() => {
     setSearchParams(elementParams, { replace: true });
   }, []);
+
+  useEffect(() => {
+    const setTourSection = (event) => {
+      if (["hogar", "lista", "productos"].includes(event.detail)) {
+        setHogarSection(event.detail);
+      }
+    };
+
+    window.addEventListener("notapp:tour:set-home-section", setTourSection);
+
+    return () => {
+      window.removeEventListener("notapp:tour:set-home-section", setTourSection);
+    };
+  }, [setHogarSection]);
 
   // Mutations with Data
 

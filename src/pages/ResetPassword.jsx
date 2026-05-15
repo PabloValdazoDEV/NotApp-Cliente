@@ -48,6 +48,9 @@ export default function ResetPassword() {
         setMessageInfo(response.message);
       }
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
 
   const mutationCheckToken = useMutation({
@@ -94,6 +97,8 @@ export default function ResetPassword() {
   }, []);
 
   const onSubmit = (data) => {
+    if (loadingAnimation) return;
+
     if (!validation.passwordConfirm) {
       setMessageInfo("La contraseña no es la misma");
       return;

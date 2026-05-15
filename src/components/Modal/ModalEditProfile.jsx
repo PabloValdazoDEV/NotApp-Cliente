@@ -37,7 +37,12 @@ export default function ModalEditProfile({ clickClose }) {
 
   const mutationProfile = useMutation({
     mutationFn: updateProfile,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (response?.success === false) {
+        toast.error(response.message);
+        return;
+      }
+
       toast.success("Perfil actualizado!");
       setLoadingAnimation(false);
       setImageDelete(false);
@@ -48,9 +53,14 @@ export default function ModalEditProfile({ clickClose }) {
     onError: () => {
       toast.error("Error al actualizar");
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
 
   const onSubmit = (formData) => {
+    if (loadingAnimation) return;
+
     if (formData.name.trim().length === 0) {
       setValue("name", profileData?.user.name);
     }

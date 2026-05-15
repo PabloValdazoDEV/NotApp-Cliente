@@ -18,6 +18,8 @@ import ButtonSecondary from "../Buttons/ButtonSecondary";
 const ONBOARDING_VERSION = 1;
 const ONBOARDING_REPLAY_KEY = "notapp:onboarding:replay";
 const CARD_WIDTH = 360;
+const CARD_ESTIMATED_HEIGHT = 300;
+const CARD_GAP = 16;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -30,7 +32,7 @@ const getInstallInstructions = () => {
     return {
       title: "Añade NotApp a tu inicio en iPhone",
       items: [
-        "Abre NotApp desde Safari.",
+        "Abre NotApp desde Safari, Chrome u otro navegador compatible.",
         "Pulsa el botón Compartir.",
         "Elige Añadir a pantalla de inicio.",
         "Confirma con Añadir.",
@@ -69,7 +71,7 @@ const buildSteps = ({ onboarding, tutorialHomeId }) => {
     {
       id: "welcome",
       title: "Bienvenido a NotApp",
-      text: "Te voy a enseñar lo esencial para crear hogares, preparar listas y hacer la compra sin tocar datos reales.",
+      text: "Te enseño lo esencial para organizar hogares, preparar listas y practicar en un espacio de prueba.",
     },
     !installDone && {
       id: "install",
@@ -82,24 +84,25 @@ const buildSteps = ({ onboarding, tutorialHomeId }) => {
       route: "/home",
       target: "home-create",
       title: "Crea tus hogares",
-      text: "Un hogar es el espacio compartido donde estarán los miembros, productos y listas.",
+      text: "Un hogar es el espacio compartido donde organizas miembros, productos y listas.",
     },
     {
       id: "home-card",
       route: "/home",
       target: "home-card",
       title: "Entra en un hogar",
-      text: "Desde cada tarjeta puedes abrir un hogar. Si no ves el tutorial en la lista, ahora iremos al hogar de práctica directamente.",
+      text: "Cada tarjeta te lleva a un hogar. Para practicar usaremos un hogar Tutorial separado del trabajo real.",
     },
     tutorialHomeId && {
       id: "tutorial-home",
       route: `/hogar/${tutorialHomeId}`,
       title: "Hogar Tutorial",
-      text: "Este hogar es para practicar. Puedes tocar opciones, probar productos y aprender sin miedo a cambiar un hogar real.",
+      text: "Este hogar es tu zona de pruebas. Puedes tocar opciones, crear productos y aprender el flujo sin afectar a tus hogares reales.",
     },
     tutorialHomeId && {
       id: "home-tabs",
       route: `/hogar/${tutorialHomeId}`,
+      section: "lista",
       target: "hogar-tabs",
       title: "Secciones del hogar",
       text: "Aquí cambias entre listas, productos y miembros. En móvil también puedes deslizar entre secciones.",
@@ -107,6 +110,7 @@ const buildSteps = ({ onboarding, tutorialHomeId }) => {
     tutorialHomeId && {
       id: "members",
       route: `/hogar/${tutorialHomeId}`,
+      section: "hogar",
       target: "hogar-members-tab",
       title: "Miembros",
       text: "Desde miembros puedes invitar personas, ver pendientes y controlar quién participa en el hogar.",
@@ -114,6 +118,7 @@ const buildSteps = ({ onboarding, tutorialHomeId }) => {
     tutorialHomeId && {
       id: "lists",
       route: `/hogar/${tutorialHomeId}`,
+      section: "lista",
       target: "hogar-lists-tab",
       title: "Listas",
       text: "Las listas son lo que usarás para preparar una compra concreta.",
@@ -121,13 +126,23 @@ const buildSteps = ({ onboarding, tutorialHomeId }) => {
     tutorialHomeId && {
       id: "list-create",
       route: `/hogar/${tutorialHomeId}`,
+      section: "lista",
       target: "list-create",
       title: "Crea listas",
       text: "Con este botón puedes crear una nueva lista para una compra o una necesidad concreta.",
     },
     tutorialHomeId && {
+      id: "list-card-actions",
+      route: `/hogar/${tutorialHomeId}`,
+      section: "lista",
+      target: "list-card-actions",
+      title: "Edita o empieza la compra",
+      text: "En cada lista puedes editar productos y cantidades, o entrar en modo compra para registrar lo que encuentras.",
+    },
+    tutorialHomeId && {
       id: "products",
       route: `/hogar/${tutorialHomeId}`,
+      section: "productos",
       target: "hogar-products-tab",
       title: "Productos",
       text: "En productos guardas los artículos habituales del hogar para reutilizarlos en listas.",
@@ -135,9 +150,26 @@ const buildSteps = ({ onboarding, tutorialHomeId }) => {
     tutorialHomeId && {
       id: "product-create",
       route: `/hogar/${tutorialHomeId}`,
+      section: "productos",
       target: "product-create",
       title: "Añade productos",
       text: "Puedes crear productos con nombre, descripción, supermercado, categorías e imagen.",
+    },
+    tutorialHomeId && {
+      id: "product-images",
+      route: `/hogar/${tutorialHomeId}`,
+      section: "productos",
+      target: "product-create",
+      title: "Fotos de producto",
+      text: "Al crear o editar un producto puedes subir una imagen, tomar una foto con la cámara o buscar sugerencias en internet. Si la conexión es mala, NotApp te avisa.",
+    },
+    tutorialHomeId && {
+      id: "shopping-mode",
+      route: `/hogar/${tutorialHomeId}`,
+      section: "lista",
+      target: "list-card-do",
+      title: "Modo compra",
+      text: "Durante la compra puedes marcar productos como comprados, indicar cantidades parciales, editar el producto o añadir uno de última hora.",
     },
     {
       id: "profile",
@@ -149,9 +181,80 @@ const buildSteps = ({ onboarding, tutorialHomeId }) => {
     {
       id: "finish",
       title: "Ya tienes lo básico",
-      text: "Cuando quieras practicar más, entra en el hogar Tutorial. Cuando termines este paso, no volveré a mostrarte la guía automáticamente.",
+      text: "Puedes volver a ver este tutorial desde tu perfil. Si repites el tour, prepararemos un hogar Tutorial nuevo para practicar de cero.",
     },
   ].filter(Boolean);
+};
+
+const getCardPosition = (targetRect) => {
+  if (!targetRect) {
+    return {
+      left: "50%",
+      top: "50%",
+      width: "min(380px, calc(100vw - 32px))",
+      transform: "translate(-50%, -50%)",
+    };
+  }
+
+  const cardWidth = Math.min(CARD_WIDTH, window.innerWidth - 32);
+  const belowSpace = window.innerHeight - targetRect.bottom;
+  const aboveSpace = targetRect.top;
+  const rightSpace = window.innerWidth - targetRect.right;
+  const leftSpace = targetRect.left;
+  const canGoRight = rightSpace >= cardWidth + CARD_GAP;
+  const canGoLeft = leftSpace >= cardWidth + CARD_GAP;
+  const canGoBelow = belowSpace >= CARD_ESTIMATED_HEIGHT + CARD_GAP;
+  const canGoAbove = aboveSpace >= CARD_ESTIMATED_HEIGHT + CARD_GAP;
+
+  if (canGoRight) {
+    return {
+      left: `${targetRect.right + CARD_GAP}px`,
+      top: `${clamp(
+        targetRect.top,
+        16,
+        window.innerHeight - CARD_ESTIMATED_HEIGHT - 16
+      )}px`,
+      width: `${cardWidth}px`,
+    };
+  }
+
+  if (canGoLeft) {
+    return {
+      left: `${targetRect.left - cardWidth - CARD_GAP}px`,
+      top: `${clamp(
+        targetRect.top,
+        16,
+        window.innerHeight - CARD_ESTIMATED_HEIGHT - 16
+      )}px`,
+      width: `${cardWidth}px`,
+    };
+  }
+
+  if (canGoBelow || belowSpace >= aboveSpace) {
+    return {
+      left: `${clamp(targetRect.left, 16, window.innerWidth - cardWidth - 16)}px`,
+      top: `${Math.min(
+        targetRect.bottom + CARD_GAP,
+        window.innerHeight - CARD_ESTIMATED_HEIGHT - 16
+      )}px`,
+      width: `${cardWidth}px`,
+    };
+  }
+
+  if (canGoAbove || aboveSpace > belowSpace) {
+    return {
+      left: `${clamp(targetRect.left, 16, window.innerWidth - cardWidth - 16)}px`,
+      top: `${Math.max(16, targetRect.top - CARD_ESTIMATED_HEIGHT - CARD_GAP)}px`,
+      width: `${cardWidth}px`,
+    };
+  }
+
+  return {
+    left: "50%",
+    top: "50%",
+    width: "min(380px, calc(100vw - 32px))",
+    transform: "translate(-50%, -50%)",
+  };
 };
 
 export default function OnboardingTour() {
@@ -175,7 +278,9 @@ export default function OnboardingTour() {
 
   const onboarding = onboardingResponse?.onboarding;
   const tutorialHomeId =
-    onboarding?.tutorialHomeId || ensuredTutorialHomeId || "";
+    forceReplay
+      ? ensuredTutorialHomeId || onboarding?.tutorialHomeId || ""
+      : onboarding?.tutorialHomeId || ensuredTutorialHomeId || "";
   const shouldShow =
     onboardingResponse?.success !== false &&
     onboarding &&
@@ -189,6 +294,7 @@ export default function OnboardingTour() {
   useEffect(() => {
     const replayOnboarding = () => {
       localStorage.setItem(ONBOARDING_REPLAY_KEY, "true");
+      setEnsuredTutorialHomeId("");
       setStepIndex(0);
       setForceReplay(true);
     };
@@ -264,10 +370,19 @@ export default function OnboardingTour() {
 
   useEffect(() => {
     if (!shouldShow || isLoading) return;
-    if (tutorialHomeId || mutationEnsureTutorialHome.isPending) return;
+    if (mutationEnsureTutorialHome.isPending) return;
+
+    if (forceReplay && !ensuredTutorialHomeId) {
+      mutationEnsureTutorialHome.mutate({ recreate: true });
+      return;
+    }
+
+    if (tutorialHomeId) return;
 
     mutationEnsureTutorialHome.mutate();
   }, [
+    ensuredTutorialHomeId,
+    forceReplay,
     isLoading,
     mutationEnsureTutorialHome,
     shouldShow,
@@ -280,6 +395,20 @@ export default function OnboardingTour() {
 
     navigate(currentStep.route);
   }, [currentStep?.route, location.pathname, navigate, shouldShow]);
+
+  useEffect(() => {
+    if (!shouldShow || !currentStep?.section) return;
+
+    const timeoutId = window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("notapp:tour:set-home-section", {
+          detail: currentStep.section,
+        })
+      );
+    }, 200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentStep?.section, currentStep?.route, shouldShow]);
 
   useEffect(() => {
     if (!shouldShow || !currentStep?.target) {
@@ -301,10 +430,15 @@ export default function OnboardingTour() {
         return;
       }
 
+      visibleElement.scrollIntoView({
+        block: "center",
+        inline: "center",
+        behavior: "smooth",
+      });
       setTargetRect(visibleElement.getBoundingClientRect());
     };
 
-    const timeoutId = window.setTimeout(measureTarget, 250);
+    const timeoutId = window.setTimeout(measureTarget, 300);
     window.addEventListener("resize", measureTarget);
     window.addEventListener("scroll", measureTarget, true);
 
@@ -324,30 +458,7 @@ export default function OnboardingTour() {
 
   const isLastStep = stepIndex === steps.length - 1;
   const isInstallStep = currentStep.id === "install";
-  const cardLeft = targetRect
-    ? clamp(
-        targetRect.left,
-        16,
-        window.innerWidth - Math.min(CARD_WIDTH, window.innerWidth - 32) - 16
-      )
-    : 16;
-  const cardTop = targetRect
-    ? targetRect.bottom + 260 > window.innerHeight
-      ? Math.max(16, targetRect.top - 240)
-      : targetRect.bottom + 12
-    : Math.max(80, window.innerHeight / 2 - 190);
-  const cardStyle = targetRect
-    ? {
-        left: `${cardLeft}px`,
-        top: `${cardTop}px`,
-        width: `min(${CARD_WIDTH}px, calc(100vw - 32px))`,
-      }
-    : {
-        left: "50%",
-        top: "50%",
-        width: "min(380px, calc(100vw - 32px))",
-        transform: "translate(-50%, -50%)",
-      };
+  const cardStyle = getCardPosition(targetRect);
 
   const goNext = () => {
     if (isInstallStep && !onboarding?.installPromptCompletedAt) {
@@ -365,6 +476,10 @@ export default function OnboardingTour() {
     }
 
     setStepIndex((prev) => prev + 1);
+  };
+
+  const goPrevious = () => {
+    setStepIndex((prev) => Math.max(prev - 1, 0));
   };
 
   const skipStep = () => {
@@ -444,7 +559,15 @@ export default function OnboardingTour() {
             ))}
           </ol>
         )}
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <ButtonSecondary
+            type="button"
+            className="w-full px-3"
+            disabled={stepIndex === 0}
+            onClick={goPrevious}
+          >
+            Anterior
+          </ButtonSecondary>
           <ButtonSecondary
             type="button"
             className="w-full px-3"

@@ -28,15 +28,24 @@ export default function ModalCreateHogar({ clickClose }) {
 
   const mutation = useMutation({
     mutationFn: postHome,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (response?.success === false) {
+        toast.error(response.message);
+        return;
+      }
+
       toast.success("Hogar creado correctamente!");
-      setLoadingAnimation(false);
       queryClient.invalidateQueries();
       clickClose();
+    },
+    onSettled: () => {
+      setLoadingAnimation(false);
     },
   });
 
   const onSubmit = (data) => {
+    if (loadingAnimation) return;
+
     const formData = {
       user_id: userData.id,
       name: data.name,

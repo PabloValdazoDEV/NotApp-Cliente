@@ -43,16 +43,16 @@ export default function CardItemList({
     : "";
   const foundQuantityLabel = `${purchasedQuantity} de ${quantity}`;
   const statusButtonLabel = checked
-    ? "Todo comprado"
+    ? "Todo encontrado"
     : notFound
-      ? "No encontrado"
+      ? "Nada encontrado"
       : partial
         ? foundQuantityLabel
         : "Registrar";
   const shoppingSummaryLabel = checked
-    ? "Todo comprado"
+    ? "Todo encontrado"
     : notFound
-      ? "No encontrado"
+      ? "Nada encontrado"
       : `Comprado: ${foundQuantityLabel}`;
 
   const mutationUploadImage = useMutation({
@@ -175,7 +175,7 @@ return (
           </p>
           {partial && (
             <p className="col-span-5 text-xs font-semibold text-amber-600">
-              No encontrado: {quantity - purchasedQuantity} de {quantity}
+              Nada encontrado: {quantity - purchasedQuantity} de {quantity}
             </p>
           )}
           {pending && (
@@ -190,7 +190,7 @@ return (
             onClick={() => setShowPartialModal(true)}
             className={`flex min-h-20 flex-col items-center justify-center rounded-md px-2 py-3 text-white transition-transform hover:scale-105 ${
               checked
-                ? "bg-green-600"
+                ? "bg-blue-600"
                 : notFound
                   ? "bg-red-500"
                   : "bg-[color:var(--color-primary)]"
@@ -261,10 +261,23 @@ return (
                 {Array.from({ length: quantity + 1 }, (_, amount) => {
                   const label =
                     amount === 0
-                      ? "No encontrado"
+                      ? "Nada encontrado"
                       : amount === quantity
-                        ? "Todo comprado"
+                        ? "Todo encontrado"
                         : `${amount} de ${quantity}`;
+                  const isSelected = purchasedQuantity === amount;
+                  const optionStyle =
+                    amount === 0
+                      ? isSelected
+                        ? "border-red-500 bg-red-500 text-white"
+                        : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                      : amount === quantity
+                        ? isSelected
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                        : isSelected
+                          ? "border-(--color-primary) bg-(--color-primary) text-white"
+                          : "border-gray-200 bg-white text-gray-800 hover:bg-gray-100";
 
                   return (
                     <button
@@ -278,11 +291,7 @@ return (
                         );
                         setShowPartialModal(false);
                       }}
-                      className={`min-h-14 rounded-lg border px-3 py-3 text-sm font-bold leading-tight transition ${
-                        purchasedQuantity === amount
-                          ? "border-(--color-primary) bg-(--color-primary) text-white"
-                          : "border-gray-200 bg-white text-gray-800 hover:bg-gray-100"
-                      }`}
+                      className={`min-h-14 rounded-lg border px-3 py-3 text-sm font-bold leading-tight transition ${optionStyle}`}
                     >
                       {label}
                     </button>
@@ -370,7 +379,7 @@ return (
                   </label>
                 </div>
                 {selectedFile && (
-                  <span className="w-fit rounded-md bg-green-50 px-3 py-1 text-sm text-green-700">
+                  <span className="w-fit rounded-md bg-blue-50 px-3 py-1 text-sm text-blue-700">
                     {selectedFile.name}
                   </span>
                 )}

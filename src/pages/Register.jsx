@@ -49,6 +49,9 @@ export default function Register() {
         setMessageInfo(reponse.message);
       }
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
 
   const password = watch("password");
@@ -84,6 +87,8 @@ export default function Register() {
   }, [email, emailConfirm]);
 
   const onSubmit = (data) => {
+    if (loadingAnimation) return;
+
     if (!validation.emailConfirm && !validation.passwordConfirm) {
       setMessageInfo("El email no es el mismo, la contraseña no es la misma");
       return;
@@ -98,6 +103,7 @@ export default function Register() {
       setMessageInfo("La contraseña no es la misma");
       return;
     }
+    setLoadingAnimation(true);
     mutation.mutate(data);
   };
   return (

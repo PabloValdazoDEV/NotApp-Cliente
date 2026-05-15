@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
         <h2>Responsable</h2>
         <p className="mt-3">
           Responsable del tratamiento: Pablo Valdazo de la Cruz. Correo de
-          contacto: pablovaldazodelacruz00@gmail.com.
+          contacto: soporte@notapp.es.
         </p>
       </section>
 
@@ -78,7 +78,7 @@ export default function PrivacyPolicy() {
         <p className="mt-3">
           Puedes solicitar acceso, rectificacion, supresion, oposicion,
           limitacion del tratamiento y portabilidad escribiendo a
-          pablovaldazodelacruz00@gmail.com. Tambien puedes reclamar ante la
+          soporte@notapp.es. Tambien puedes reclamar ante la
           autoridad de proteccion de datos competente si consideras que el
           tratamiento no es adecuado.
         </p>

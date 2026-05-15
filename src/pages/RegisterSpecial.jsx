@@ -52,6 +52,9 @@ export default function RegisterSpecial() {
         setMessageInfo(response.message);
       }
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
 
   const mutationCheckToken = useMutation({
@@ -105,6 +108,8 @@ export default function RegisterSpecial() {
   }, [email, emailConfirm]);
 
   const onSubmit = (data) => {
+    if (loadingAnimation) return;
+
     if (!validation.emailConfirm && !validation.passwordConfirm) {
       setMessageInfo("El email no es el mismo, la contraseña no es la misma");
       return;

@@ -89,9 +89,10 @@ export default function CardList({ data, onListCreated }) {
           <p>{data.title}</p>
           <p className="text-xs mt-1 font-thin">Creado el {outDate}</p>
         </div>
-        <div className="col-span-4 grid grid-cols-2 gap-3">
+        <div className="col-span-4 grid grid-cols-2 gap-3" data-tour="list-card-actions">
           <ButtonGeneral
-          className="flex justify-center items-center"
+            data-tour="list-card-edit"
+            className="flex justify-center items-center"
             type="button"
             title="Editar lista"
             ariaLabel="Editar lista"
@@ -101,6 +102,7 @@ export default function CardList({ data, onListCreated }) {
             }}
           />
           <ButtonGeneral
+            data-tour="list-card-do"
             type="button"
             className="flex justify-center items-center"
             title="Hacer la compra"

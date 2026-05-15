@@ -13,9 +13,9 @@ export const getOnboarding = async () => {
   }
 };
 
-export const ensureTutorialHome = async () => {
+export const ensureTutorialHome = async (data = {}) => {
   try {
-    const response = await api.post("/onboarding/tutorial-home");
+    const response = await api.post("/onboarding/tutorial-home", data);
     return response.data;
   } catch (error) {
     return {

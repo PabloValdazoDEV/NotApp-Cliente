@@ -39,6 +39,9 @@ export default function Login() {
         setMessageInfo(reponse.message);
       }
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
   const mutationForgotPassword = useMutation({
     mutationFn: tryForgotPassword,
@@ -53,13 +56,18 @@ export default function Login() {
         setMessageInfo(reponse.message);
       }
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
 
   const onSubmitLogin = (data) => {
+    if (loadingAnimation) return;
     setLoadingAnimation(true);
     mutation.mutate(data);
   };
   const onSubmitForgotPassword = (data) => {
+    if (loadingAnimation) return;
     setLoadingAnimation(true);
     mutationForgotPassword.mutate(data);
   };

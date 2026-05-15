@@ -150,10 +150,18 @@ export default function ModalItem({
     onError: () => {
       toast.error("Error al crear el producto!");
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
   const mutationUpdate = useMutation({
     mutationFn: updateItem,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (response?.success === false) {
+        toast.error(response.message || "Error al actualizar el producto!");
+        return;
+      }
+
       toast.success("Producto actualizado correctamente!");
       setLoadingAnimation(false);
       setImageRemoved(false);
@@ -162,6 +170,9 @@ export default function ModalItem({
     },
     onError: () => {
       toast.error("Error al actualizar el producto!");
+    },
+    onSettled: () => {
+      setLoadingAnimation(false);
     },
   });
 
@@ -207,6 +218,8 @@ export default function ModalItem({
   };
 
   const onSubmit = (dataFrom) => {
+    if (loadingAnimation) return;
+
     if (data) {
       const categoriesToSave = imageOnly
         ? data.categories || []
@@ -375,12 +388,17 @@ export default function ModalItem({
                   register={register}
                   setValue={setValue}
                   className={visibleImageUrl ? "mt-3" : ""}
+                  cameraTour="product-camera"
+                  galleryTour="product-gallery"
                 />
                 <p className="mt-2 text-xs text-gray-500">
                   Imagen opcional. Formato recomendado: JPG, PNG o WEBP. Peso
                   recomendado: máximo 2 MB.
                 </p>
-                <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+                <div
+                  data-tour="product-image-search"
+                  className="mt-3 rounded-xl border border-gray-200 bg-white p-3"
+                >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-800">

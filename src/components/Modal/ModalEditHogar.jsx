@@ -26,14 +26,23 @@ export default function ModalEditHogar({ clickClose, name, image, hogar_id }) {
 
   const mutationUpdateHogar = useMutation({
     mutationFn: updateHome,
-    onSuccess: () => {
-      setLoading(false);
+    onSuccess: (response) => {
+      if (response?.success === false) {
+        toast.error(response.message);
+        return;
+      }
+
       toast.success("Hogar actualizado correctamente!");
       queryClient.invalidateQueries();
+    },
+    onSettled: () => {
+      setLoading(false);
     },
   });
 
   const onSubmit = (data) => {
+    if (loading) return;
+
     if (data.name.trim().length === 0) {
       setValue("name", name);
     }

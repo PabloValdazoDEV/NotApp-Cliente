@@ -30,6 +30,9 @@ export default function ModalEditMember({ data, clickClose }) {
       setLoadingAnimation(false)
       clickClose()
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
   const mutationDeleteMember = useMutation({
     mutationFn: deleteMember,
@@ -43,9 +46,14 @@ export default function ModalEditMember({ data, clickClose }) {
       setLoadingAnimation(false)
        clickClose()
     },
+    onSettled: () => {
+      setLoadingAnimation(false);
+    },
   });
 
   const onSubmit = (dataForm) => {
+    if (loadingAnimation) return;
+
     setLoadingAnimation(true);
     mutationUpdateMember.mutate({
       id: data.id,
@@ -104,6 +112,7 @@ export default function ModalEditMember({ data, clickClose }) {
               children="Eliminar miembro"
               className="text-red-500 w-42"
               onClick={() => {
+                if (loadingAnimation) return;
                 setLoadingAnimation(true);
                 mutationDeleteMember.mutate(data.id);
               }}

@@ -4,6 +4,8 @@ export default function ImageSourceInputs({
   setValue,
   name = "file",
   className = "",
+  cameraTour,
+  galleryTour,
 }) {
   const fileInput = register(name);
 
@@ -18,12 +20,14 @@ export default function ImageSourceInputs({
     <div className={`flex flex-wrap gap-2 ${className}`.trim()}>
       <label
         htmlFor={`${id}-camera`}
+        data-tour={cameraTour}
         className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
       >
         Hacer foto
       </label>
       <label
         htmlFor={`${id}-gallery`}
+        data-tour={galleryTour}
         className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
       >
         Galería
